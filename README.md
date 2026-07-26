@@ -35,6 +35,8 @@ Original component idea and protocol groundwork:
 
 - https://github.com/schmurgel-tg/esphome-components
 
+Many thanks to this cool work!
+
 ## Feature Summary
 
 - Read key temperatures and runtime values via serial protocol commands
