@@ -1,5 +1,5 @@
-# Pichler LG250 ESPHome Reduced Configuration
-# Nur aktuell validierte/antwortende Werte aus den Logs
+# Aktive Nutzkonfiguration fuer LG250
+# Diese Datei entspricht der reduzierten, stabilen Konfiguration.
 
 esphome:
   name: lg250-esp
@@ -45,14 +45,12 @@ uart:
 
 40lg040100:
   uart_id: uart_bus
-  reference_profile: lg250
   restore_attempts: 5
   enable_unsafe_writes: false
 
 sensor:
   - platform: 40lg040100
     sensors_custom:
-      # Laut Log valide und numerisch
       - command: "T1"
         name: "LG250 T1 Verdampfertemperatur"
         unit_of_measurement: "°C"

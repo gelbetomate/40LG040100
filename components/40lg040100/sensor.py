@@ -199,6 +199,7 @@ async def generate_sensor_code(parent, sensor_config):
     """Generate code for one sensor."""
 
     command = sensor_config[CONF_COMMAND]
+    sensor_config.setdefault(CONF_ACCURACY_DECIMALS, 1)
 
     sens = await sensor.new_sensor(sensor_config)
 
