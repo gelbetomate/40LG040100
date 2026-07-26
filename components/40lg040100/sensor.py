@@ -169,7 +169,7 @@ CONFIG_SCHEMA = cv.All(cv.Schema(
         # **Standard-Sensoren mit IntelliSense (NUR vordefinierte Werte)**
         cv.Optional(CONF_SENSORS, default={}): cv.Schema(
             {
-                cv.Optional(k, default={}): sensor.sensor_schema()
+                cv.Optional(k): sensor.sensor_schema()
                 .extend(
                     {
                         cv.GenerateID(CONF_SENSOR_POLLING_COMPONENT_ID): cv.declare_id(LG040100SensorPollingComponent),
