@@ -25,7 +25,7 @@ namespace esphome
         void WR3223::dump_config()
         {
             ESP_LOGCONFIG(TAG, "40LG040100 Konfiguration:");
-            ESP_LOGCONFIG(TAG, "  - Update Intervall: %d ms", this->get_update_interval());
+            ESP_LOGCONFIG(TAG, "  - Update Intervall: %lu ms", static_cast<unsigned long>(this->get_update_interval()));
         }
 
         void WR3223::on_relais_update()

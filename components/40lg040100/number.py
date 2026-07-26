@@ -153,10 +153,10 @@ CONFIG_SCHEMA = cv.Schema(
                     "Raumsollwert (Rd)", "°C", "mdi:home-thermometer", 10, 30
                 ),
                 cv.Optional(CONF_SUPPLY_FAN_TRIM, default={}): _register_number_schema(
-                    "Zuluft +/- (LD)", "%", "mdi:fan-plus", -40, 40
+                    "Zuluft Plus-Minus (LD)", "%", "mdi:fan-plus", -40, 40
                 ),
                 cv.Optional(CONF_EXHAUST_FAN_TRIM, default={}): _register_number_schema(
-                    "Abluft +/- (Ld)", "%", "mdi:fan-minus", -40, 40
+                    "Abluft Plus-Minus (Ld)", "%", "mdi:fan-minus", -40, 40
                 ),
                 **{
                     cv.Optional(key, default={}): _register_number_schema(
