@@ -7,8 +7,13 @@ esphome:
 
 esp32:
   board: esp32dev
+  framework:
+    advanced:
+      minimum_chip_revision: 3.1
+      sram1_as_iram: true
 
 logger:
+  level: INFO
 
 api:
   encryption:
@@ -153,6 +158,56 @@ sensor:
         name: "LG250 Fehlercode Leistungsteil Rohwert"
         accuracy_decimals: 0
         update_interval: 60s
+
+      # Zusatztest: Laufzeiten/Stundenregister
+      - command: "FI"
+        name: "LG250 Filter Restlaufzeit"
+        unit_of_measurement: "h"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "H1"
+        name: "LG250 Betriebsstunden Stufe 1"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "H2"
+        name: "LG250 Betriebsstunden Stufe 2"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "H3"
+        name: "LG250 Betriebsstunden Stufe 3"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "H4"
+        name: "LG250 Betriebsstunden Stufe 4"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "HL"
+        name: "LG250 Betriebsstunden Luefter Gesamt"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "SN"
+        name: "LG250 Solar Nutzen Laufzeit"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        accuracy_decimals: 0
+        update_interval: 2min
 
 binary_sensor:
   - platform: 40lg040100
