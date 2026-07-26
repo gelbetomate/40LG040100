@@ -2,6 +2,10 @@
 
 This repository provides ESPHome external components for Hermes 40LG040100 ventilation and heat-pump controllers.
 
+
+This is work in progress. Please test with care and don't expect it to work at all.
+There is a differnce in the WRS3223 and the 40LG040100 in the codes to be used. But the interface itself seems to be the same. The technical setup for ESPHome worked and I can read some of the values from my Pichler LG250 but not all. As it was not possible to get all data with ESPHome configuration I decided to make a copy of smurgels implementation and trim this to my needs.
+
 ## What 40LG040100 Means
 
 In the context of Hermes Electronic and a Pichler KWL (controlled residential ventilation) system, `40LG040100` refers to the part number or board designation of the central control unit (main PCB) of the ventilation device.
@@ -273,6 +277,8 @@ The references repeatedly mention these control and telemetry capabilities:
 - Enable writes only for commands with confirmed semantics and scaling.
 
 ## UI Screenshots
+
+Still smurgels pictures, need to update this with mine
 
 ![Controls](images/wr3223_steuerelemente.png)
 ![Sensors](images/wr3223_sensoren.png)
