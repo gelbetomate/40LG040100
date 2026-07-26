@@ -1,5 +1,8 @@
 ﻿#include "lg040100_sensor_polling.h"
 #include "esphome/core/log.h"
+#include <cerrno>
+#include <cstdlib>
+#include <cctype>
 
 namespace esphome
 {
@@ -32,7 +35,19 @@ namespace esphome
 
             if (sensor_)
             {
-                float value = atof(response);
+                errno = 0;
+                char *endptr = nullptr;
+                float value = strtof(response, &endptr);
+
+                while (endptr != nullptr && *endptr != '\0' && std::isspace(static_cast<unsigned char>(*endptr)))
+                    ++endptr;
+
+                if (endptr == response || errno == ERANGE || (endptr != nullptr && *endptr != '\0'))
+                {
+                    ESP_LOGW(TAG, "Command %s: Ungueltige numerische Antwort '%s' - Wert wird verworfen.", command_, response);
+                    return;
+                }
+
                 ESP_LOGD(TAG, "Sensorwert fuer %s: %f", command_, value);
                 sensor_->publish_state(value);
             }
