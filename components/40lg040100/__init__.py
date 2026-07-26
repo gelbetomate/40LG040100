@@ -1,6 +1,6 @@
 ﻿import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import uart, binary_sensor, text_sensor
+from esphome.components import uart, binary_sensor as esphome_binary_sensor, text_sensor as esphome_text_sensor
 from esphome.components.binary_sensor import new_binary_sensor
 from esphome.const import(    
     CONF_UART_ID,
@@ -79,13 +79,13 @@ CONFIG_SCHEMA = cv.Schema({
             CONF_NAME: "FEHLER", 
             CONF_DEVICE_CLASS: DEVICE_CLASS_PROBLEM, 
             CONF_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC,
-            }): binary_sensor.binary_sensor_schema().extend({
+            }): esphome_binary_sensor.binary_sensor_schema().extend({
                 cv.Optional(CONF_DEACTIVATE, default=False): cv.boolean,  # Option zum Deaktivieren
         }),
         cv.Optional(CONF_ERROR_TEXT, default={
             CONF_NAME: "FEHLER Text",            
             CONF_ENTITY_CATEGORY: ENTITY_CATEGORY_DIAGNOSTIC
-        }): text_sensor.text_sensor_schema().extend({
+        }): esphome_text_sensor.text_sensor_schema().extend({
             cv.Optional(CONF_DEACTIVATE, default=False): cv.boolean,  # Option zum Deaktivieren
         }), 
     }),
@@ -153,5 +153,5 @@ async def to_code(config):
                 cg.add(error_component.register_status_sensor(sensor_error_status))
     
             if error_text_config.get(CONF_DEACTIVATE) != True:
-                sensor_error_text = await text_sensor.new_text_sensor(error_text_config)
+                sensor_error_text = await esphome_text_sensor.new_text_sensor(error_text_config)
                 cg.add(error_component.register_text_sensor(sensor_error_text))

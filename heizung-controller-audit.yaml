@@ -1,0 +1,272 @@
+# Pichler LG250 ESPHome Audit Configuration (max. read coverage)
+# Ziel: moeglichst viele lesbare Register in Home Assistant sichtbar machen
+
+esphome:
+  name: lg250-esp
+  friendly_name: LG250 ESP
+
+esp32:
+  board: esp32dev
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: LG250 ESP Fallback Hotspot
+    password: "XhiajwUeN6m6"
+
+captive_portal:
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/gelbetomate/40LG040100
+      ref: main
+    components: [40lg040100]
+    refresh: always
+
+uart:
+  - id: uart_bus
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+    data_bits: 7
+    parity: EVEN
+    stop_bits: 1
+
+40lg040100:
+  uart_id: uart_bus
+  reference_profile: lg250
+  restore_attempts: 5
+  enable_unsafe_writes: false
+
+sensor:
+  - platform: 40lg040100
+    reference_profile: lg250
+
+    # Standardwerte koennen hier bei Bedarf umbenannt/deaktiviert werden.
+    sensors:
+      T1:
+        deactivate: true
+      T2:
+        deactivate: true
+      T3:
+        deactivate: true
+
+    sensors_custom:
+      # Plausibilitaet: explizite Temperaturnamen passend zur Registerdefinition
+      - command: "T1"
+        name: "LG250 T1 Verdampfertemperatur"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      - command: "T2"
+        name: "LG250 T2 Kondensatortemperatur"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      - command: "T3"
+        name: "LG250 T3 Aussentemperatur"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      - command: "T4"
+        name: "LG250 T4 Ablufttemperatur Raum"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      - command: "T5"
+        name: "LG250 T5 Nach Waermetauscher Fortluft"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      - command: "T6"
+        name: "LG250 T6 Zulufttemperatur"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      - command: "T7"
+        name: "LG250 T7 Nach Solevorerwaermung"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      - command: "T8"
+        name: "LG250 T8 Nach Vorheizregister"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        update_interval: 30s
+
+      # Sollwerte skaliert + Rohwerte fuer Plausibilitaetsvergleich
+      - command: "Rd"
+        name: "LG250 Rd Raumsollwert skaliert"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        update_interval: 60s
+        filters:
+          - multiply: 0.1
+
+      - command: "Rd"
+        name: "LG250 Rd Raumsollwert roh"
+        update_interval: 60s
+
+      - command: "Re"
+        name: "LG250 Re Zuluft Sollwert skaliert"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        update_interval: 60s
+        filters:
+          - multiply: 0.1
+
+      - command: "Re"
+        name: "LG250 Re Zuluft Sollwert roh"
+        update_interval: 60s
+
+      - command: "SP"
+        name: "LG250 SP Zuluftsolltemperatur skaliert"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        update_interval: 60s
+        filters:
+          - multiply: 0.1
+
+      - command: "SP"
+        name: "LG250 SP Zuluftsolltemperatur roh"
+        update_interval: 60s
+
+      # Betriebs-/Laufzeitwerte
+      - command: "FI"
+        name: "LG250 Filter Restlaufzeit"
+        unit_of_measurement: "h"
+        state_class: measurement
+        update_interval: 2min
+
+      - command: "H1"
+        name: "LG250 Betriebsstunden Stufe 1"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        update_interval: 5min
+
+      - command: "H2"
+        name: "LG250 Betriebsstunden Stufe 2"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        update_interval: 5min
+
+      - command: "H3"
+        name: "LG250 Betriebsstunden Stufe 3"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        update_interval: 5min
+
+      - command: "H4"
+        name: "LG250 Betriebsstunden Stufe 4"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        update_interval: 5min
+
+      - command: "HL"
+        name: "LG250 Betriebsstunden Luefter gesamt"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        update_interval: 5min
+
+      # Volumenstroeme
+      - command: "V1"
+        name: "LG250 Volumenstrom Stufe 1"
+        unit_of_measurement: "m3/h"
+        update_interval: 2min
+
+      - command: "V2"
+        name: "LG250 Volumenstrom Stufe 2"
+        unit_of_measurement: "m3/h"
+        update_interval: 2min
+
+      - command: "V3"
+        name: "LG250 Volumenstrom Stufe 3"
+        unit_of_measurement: "m3/h"
+        update_interval: 2min
+
+      # Zusatzauslese fuer selten genutzte Register
+      - command: "S1"
+        name: "LG250 S1 EWT Boost Anteil Stufe 1"
+        update_interval: 10min
+
+      - command: "S2"
+        name: "LG250 S2 EWT Boost Anteil Stufe 2"
+        update_interval: 10min
+
+      - command: "S3"
+        name: "LG250 S3 EWT Boost Anteil Stufe 3"
+        update_interval: 10min
+
+      - command: "SM"
+        name: "LG250 SM Solar max"
+        update_interval: 10min
+
+      - command: "DA"
+        name: "LG250 DA Delta T Aus"
+        update_interval: 10min
+
+      - command: "DE"
+        name: "LG250 DE Delta T Ein"
+        update_interval: 10min
+
+      - command: "Tf"
+        name: "LG250 Tf EVU Sperre"
+        update_interval: 10min
+
+text_sensor:
+  - platform: 40lg040100
+    reference_profile: lg250
+
+binary_sensor:
+  - platform: 40lg040100
+    relais_sensors:
+      kompressor:
+        name: "LG250 Kompressor"
+      zusatzheizung:
+        name: "LG250 Zusatzheizung"
+      erdwaermetauscher:
+        name: "LG250 Erdwaermetauscher"
+      bypass:
+        name: "LG250 Bypass"
+      vorheizregister:
+        name: "LG250 Vorheizregister"
+      netzrelais_bypass:
+        name: "LG250 Netzrelais Bypass"
+      bedienteil_aktiv:
+        name: "LG250 Bedienteil aktiv"
+      bedienung_via_rs:
+        name: "LG250 Bedienung via RS"
+      luftstufe_vorhanden:
+        name: "LG250 Luftstufe vorhanden"
+      ww_nachheizregister:
+        name: "LG250 Warmwasser Nachheizregister"
+      magnetventil:
+        name: "LG250 Magnetventil"
+      vorheizen_aktiv:
+        name: "LG250 Vorheizen aktiv"
