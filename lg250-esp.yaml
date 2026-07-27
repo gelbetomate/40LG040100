@@ -1,19 +1,38 @@
-# Aktive Nutzkonfiguration fuer LG250
-# Diese Datei entspricht der reduzierten, stabilen Konfiguration.
+# Pichler LG250 ESPHome Configuration (LG40 via RS232)
+# ====================================================
+# This node connects an ESP32 to a Pichler LG250 controller (Hermes LG40)
+# using the WR3223-compatible command interface over UART.
+#
+# Purpose:
+# - Read core operating values (temperatures, airflow, filter runtime, hours)
+# - Expose entities to Home Assistant via native ESPHome API
+# - Optionally write fan level commands when controller timing allows
+#
+# Wiring (ESP32 <-> LG40 board):
+# - GPIO17 (TX) -> RX on LG40 board
+# - GPIO16 (RX) -> TX on LG40 board
+# - GND must be shared between ESP32 and controller board
+#
+# Serial settings:
+# - Baud rate: 9600
+# - Data bits: 7
+# - Parity: EVEN
+# - Stop bits: 1
+#
+# Notes:
+# - Entity names are intentionally in German for Home Assistant usability.
+# - Comments/documentation are in English for maintenance consistency.
+# - Some commands are marked as "(Test)" until verified on this specific unit.
 
 esphome:
   name: lg250-esp
   friendly_name: LG250 ESP
 
+# Replace this with your actual platform if you aren't using ESP32.
 esp32:
   board: esp32dev
-  framework:
-    advanced:
-      minimum_chip_revision: "3.1"
-      sram1_as_iram: true
 
 logger:
-  level: INFO
 
 api:
   encryption:
@@ -30,6 +49,23 @@ wifi:
     password: "XhiajwUeN6m6"
 
 captive_portal:
+
+# Aktiviert das modernste v3 Webinterface fuer Live-Abgleiche im Browser
+web_server:
+  port: 80
+  version: 3
+
+# Speichert die Betriebsstunden permanent im Flash des ESP32 ab
+globals:
+  - id: global_betriebsstunden
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+
+# Holt sich die aktuelle Uhrzeit für korrekte Zeit-Intervalle
+time:
+  - platform: sntp
+    id: sntp_time
 
 external_components:
   - source:
@@ -49,15 +85,16 @@ uart:
     stop_bits: 1
 
 40lg040100:
+  id: my_lg250_controller  # <-- DIESE ID HIER ERGÄNZEN
   uart_id: uart_bus
   restore_attempts: 5
-  enable_unsafe_writes: false
+  enable_unsafe_writes: true  # HIER AKTIVIERT FÜR DIE SCHREIBTESTS
 
 sensor:
   - platform: 40lg040100
     sensors_custom:
       - command: "T1"
-        name: "LG250 T1 Verdampfertemperatur"
+        name: "LG250 T1 Aussenluft"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -65,7 +102,7 @@ sensor:
         update_interval: 30s
 
       - command: "T2"
-        name: "LG250 T2 Kondensatortemperatur"
+        name: "LG250 T2 Zulufttemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -73,7 +110,7 @@ sensor:
         update_interval: 30s
 
       - command: "T3"
-        name: "LG250 T3 Aussentemperatur"
+        name: "LG250 T3 Ablufttemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -81,7 +118,7 @@ sensor:
         update_interval: 30s
 
       - command: "T4"
-        name: "LG250 T4 Ablufttemperatur Raum"
+        name: "LG250 T4 Fortlufttemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -89,7 +126,7 @@ sensor:
         update_interval: 30s
 
       - command: "T5"
-        name: "LG250 T5 Nach Waermetauscher Fortluft"
+        name: "LG250 T5 Nach Waermetauscher (Test)"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -97,14 +134,15 @@ sensor:
         update_interval: 30s
 
       - command: "NA"
-        name: "LG250 Drehzahl Abluft"
+        name: "LG250 V2-M2 Abluftventilator Drehzahl"
         unit_of_measurement: "rpm"
         state_class: measurement
         accuracy_decimals: 0
         update_interval: 30s
 
       - command: "NZ"
-        name: "LG250 Drehzahl Zuluft"
+        name: "LG250 V1-M1 Zuluftventilator Drehzahl"
+        id: lg250_v1_m1_zuluftventilator_drehzahl
         unit_of_measurement: "rpm"
         state_class: measurement
         accuracy_decimals: 0
@@ -116,6 +154,9 @@ sensor:
         state_class: measurement
         accuracy_decimals: 1
         update_interval: 60s
+        id: lg250_ua_volt
+        filters:
+          - multiply: 0.1
 
       - command: "UZ"
         name: "LG250 Steuerspannung Zuluft"
@@ -123,6 +164,8 @@ sensor:
         state_class: measurement
         accuracy_decimals: 1
         update_interval: 60s
+        filters:
+          - multiply: 0.1
 
       - command: "RA"
         name: "LG250 Rueckwaermzahl"
@@ -131,33 +174,193 @@ sensor:
         accuracy_decimals: 1
         update_interval: 60s
 
-      - command: "LS"
-        name: "LG250 Aktuelle Luftstufe"
-        accuracy_decimals: 0
-        update_interval: 30s
-
       - command: "L1"
-        name: "LG250 Luftstufe 1 Sollwert"
+        name: "LG250 L1-S1 Sollwert Lueftungsstufe 1"
         unit_of_measurement: "%"
         accuracy_decimals: 0
         update_interval: 2min
 
       - command: "L2"
-        name: "LG250 Luftstufe 2 Sollwert"
+        name: "LG250 L2-S2 Sollwert Lueftungsstufe 2"
         unit_of_measurement: "%"
         accuracy_decimals: 0
         update_interval: 2min
 
       - command: "L3"
-        name: "LG250 Luftstufe 3 Sollwert"
+        name: "LG250 L3-S3 Sollwert Lueftungsstufe 3"
         unit_of_measurement: "%"
         accuracy_decimals: 0
         update_interval: 2min
 
-      - command: "ER"
-        name: "LG250 Fehlercode Leistungsteil Rohwert"
+      - command: "V1"
+        name: "LG250 V1 Zuluftventilator Status (Test)"
+        unit_of_measurement: "rpm"
+        state_class: measurement
         accuracy_decimals: 0
         update_interval: 60s
+
+      - command: "V2"
+        name: "LG250 V2 Abluftventilator Status (Test)"
+        unit_of_measurement: "rpm"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 60s
+
+      - command: "M1"
+        name: "LG250 M1 Zuluftventilator Prozent (Test)"
+        unit_of_measurement: "%"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 60s
+
+      - command: "M2"
+        name: "LG250 M2 Abluftventilator Prozent (Test)"
+        unit_of_measurement: "%"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 60s
+
+      - command: "F1"
+        name: "LG250 F1 Volumenstrom Zuluft (Test)"
+        unit_of_measurement: "m3/h"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 60s
+
+      - command: "F2"
+        name: "LG250 F2 Volumenstrom Abluft (Test)"
+        unit_of_measurement: "m3/h"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 60s
+
+      - command: "FH"
+        name: "LG250 FH Filterbetriebsstunden (Test)"
+        unit_of_measurement: "h"
+        state_class: total_increasing
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "FR"
+        name: "LG250 FR Filterlaufzeit Indikator (Test)"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "S1"
+        name: "LG250 S1 Sollwert Lueftungsstufe 1 (Test)"
+        unit_of_measurement: "%"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "S2"
+        name: "LG250 S2 Sollwert Lueftungsstufe 2 (Test)"
+        unit_of_measurement: "%"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 2min
+
+      - command: "S3"
+        name: "LG250 S3 Sollwert Lueftungsstufe 3 (Test)"
+        unit_of_measurement: "%"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 2min
+
+  # Berechnet die Gesamtbetriebsstunden basierend auf dem setzbaren Global-Wert
+  - platform: template
+    name: "LG250 Gesamtbetriebsstunden"
+    unit_of_measurement: "h"
+    icon: "mdi:counter"
+    state_class: total_increasing
+    accuracy_decimals: 1
+    update_interval: 60s
+    lambda: |-
+      // Wenn die Abluftspannung über 0V liegt, läuft die Anlage -> Rechne Zeit hoch
+      if (id(lg250_ua_volt).state > 0.1) {
+        id(global_betriebsstunden) += (60.0 / 3600.0); // Fügt 60 Sekunden als Stunden-Anteil hinzu
+      }
+      return id(global_betriebsstunden);
+
+text_sensor:
+  - platform: 40lg040100
+    text_sensors_custom:
+      - command: "LS"
+        name: "LG250 LS Aktuelle Lueftungsstufe"
+        id: lg250_ls_raw
+        update_interval: 30s
+
+      - command: "ER"
+        name: "LG250 ER Fehler Register Roh"
+        update_interval: 60s
+
+      - command: "ST"
+        name: "LG250 ST Status Register Roh (Test)"
+        id: lg250_st_sensor
+        update_interval: 60s
+
+      - command: "MO"
+        name: "LG250 MO Betriebsmodus Roh (Test)"
+        update_interval: 60s
+
+      - command: "BY"
+        name: "LG250 BY Bypass Modus Roh (Test)"
+        update_interval: 60s
+
+      - command: "HP"
+        name: "LG250 HP Waermepumpe Kompressor Roh (Test)"
+        update_interval: 60s
+
+      - command: "HZ"
+        name: "LG250 HZ Zusatzheizung Vorheizregister Roh (Test)"
+        update_interval: 60s
+       
+
+  - platform: template
+    name: "LG250 ST Klartext Diagnose"
+    icon: "mdi:text-box-search-outline"
+    update_interval: 60s
+    lambda: |-
+      std::string raw_st = id(lg250_st_sensor).state;
+      int val = atoi(raw_st.c_str());
+      std::string result = "";
+      if (val & 4)   result += "Bypass OFFEN (Sommermodus) | ";
+      if (val & 16)  result += "Automatik aktiv | ";
+      if (val & 32)  result += "Lüfter EIN | ";
+      if (val & 8)   result += "STÖRUNG! | ";
+      if (result == "") return {"Anlage im Standby"};
+      return result.substr(0, result.length() - 3);      
+
+  # NEUER TEXT-SENSOR: Übersetzt den Status inkl. der Grundlüftung
+  - platform: template
+    name: "LG250 Betriebsstatus Detail"
+    icon: "mdi:fan-clock"
+    update_interval: 30s
+    lambda: |-
+      std::string raw_ls = id(lg250_ls_raw).state;
+      
+      // Wenn das Display starr auf Stufe 1, 2 oder 3 steht
+      if (raw_ls.find("1") != std::string::npos) return {"Manuell - Stufe 1"};
+      if (raw_ls.find("2") != std::string::npos) return {"Manuell - Stufe 2"};
+      if (raw_ls.find("3") != std::string::npos) return {"Manuell - Stufe 3"};
+      
+      // Wenn das Display im Automatikmodus (4.) ist, prüfen wir die echte Drehzahl (NZ)
+      if (raw_ls.find("4") != std::string::npos) {
+        float rpm = id(lg250_v1_m1_zuluftventilator_drehzahl).state; // Holt die aktuelle Zuluft-Drehzahl
+        
+        if (rpm < 100) {
+          return {"Automatik - Standby"};
+        } else if (rpm <= 950) { // Da dein Log 888 rpm zeigte, greift hier die Grundlüftung
+          return {"Automatik - Grundlüftung"};
+        } else if (rpm > 950 && rpm <= 1500) {
+          return {"Automatik - Normalbetrieb"};
+        } else {
+          return {"Automatik - Party-/Bedarfslüftung"};
+        }
+      }
+      
+      return {"Unbekannter Status"};
 
 binary_sensor:
   - platform: 40lg040100
@@ -171,7 +374,7 @@ binary_sensor:
       bypass:
         name: "LG250 Bypass"
       vorheizregister:
-        name: "LG250 Vorheizregister"
+        name: "LG250 Status Vorheizregister"
       netzrelais_bypass:
         deactivate: true
       bedienteil_aktiv:
@@ -186,3 +389,57 @@ binary_sensor:
         name: "LG250 Magnetventil"
       vorheizen_aktiv:
         deactivate: true
+
+# HIER NEU: Eingabefelder für Steuerung und Übernahme der Betriebsstunden
+# Ermöglicht das Ändern der Lüftungsstufe direkt aus dem Webinterface
+# Ermöglicht das Ändern der Lüftungsstufe direkt aus dem Webinterface
+select:
+  - platform: template
+    name: "LG250 Manuelle Stufenwahl"
+    icon: "mdi:fan"
+    optimistic: true
+    options:
+      - "Stufe 1"
+      - "Stufe 2"
+      - "Stufe 3"
+      - "Automatik (4)"
+    initial_option: "Automatik (4)"
+    set_action:
+      - lambda: |-
+          if (x == "Stufe 1") {
+            // RS1 schaltet das Wandbedienteil stumm, LS1 setzt Stufe 1
+            id(uart_bus).write_str("\x04" "0011RS1" "\x05");
+            delay(50);
+            id(uart_bus).write_str("\x04" "0011LS1" "\x05");
+          } else if (x == "Stufe 2") {
+            id(uart_bus).write_str("\x04" "0011RS1" "\x05");
+            delay(50);
+            id(uart_bus).write_str("\x04" "0011LS2" "\x05");
+          } else if (x == "Stufe 3") {
+            id(uart_bus).write_str("\x04" "0011RS1" "\x05");
+            delay(50);
+            id(uart_bus).write_str("\x04" "0011LS3" "\x05");
+          } else if (x == "Automatik (4)") {
+            // RS0 übergibt die Kontrolle wieder vollautomatisch zurück ans originale Display
+            id(uart_bus).write_str("\x04" "0011RS0" "\x05");
+            delay(50);
+            id(uart_bus).write_str("\x04" "0011LS4" "\x05");
+          }
+          ESP_LOGI("main", "Bus-Kombibefehl (Remote + Stufe) abgesetzt.");
+
+number:
+  - platform: template
+    name: "LG250 Betriebsstunden vom Display eintragen"
+    icon: "mdi:counter"
+    min_value: 0
+    max_value: 999999
+    step: 1
+    mode: box
+    lambda: |-
+      return id(global_betriebsstunden);
+    set_action:
+      - lambda: |-
+          id(global_betriebsstunden) = x;
+          ESP_LOGI("main", "Betriebsstunden manuell mit Display synchronisiert.");
+
+

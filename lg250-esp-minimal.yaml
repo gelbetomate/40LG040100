@@ -1,0 +1,82 @@
+# Kompakte Nutzkonfiguration fuer LG250 auf Basis der Component-Profile
+# Diese Variante nutzt die in der Komponente hinterlegten lg250-Profile
+# fuer Sensoren, Textsensoren und Relais-Sensoren.
+
+esphome:
+  name: lg250-esp
+  friendly_name: LG250 ESP
+
+esp32:
+  board: esp32dev
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: LG250 ESP Fallback Hotspot
+    password: "XhiajwUeN6m6"
+
+captive_portal:
+
+web_server:
+  port: 80
+  version: 3
+
+time:
+  - platform: sntp
+    id: sntp_time
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/gelbetomate/40LG040100
+      ref: main
+    components: [40lg040100]
+    refresh: always
+
+uart:
+  - id: uart_bus
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+    data_bits: 7
+    parity: EVEN
+    stop_bits: 1
+
+40lg040100:
+  id: my_lg250_controller
+  uart_id: uart_bus
+  restore_attempts: 5
+  enable_unsafe_writes: false
+
+sensor:
+  - platform: 40lg040100
+    reference_profile: lg250
+
+text_sensor:
+  - platform: 40lg040100
+    reference_profile: lg250
+
+binary_sensor:
+  - platform: 40lg040100
+    reference_profile: lg250
+
+# Optional: Schreibbare Lueftungsstufe als Select aktivieren.
+# Nur sinnvoll, wenn du bewusst Schreibzugriff testen willst.
+# Dann enable_unsafe_writes unter 40lg040100 auf true setzen.
+# select:
+#   - platform: 40lg040100
+#     selects:
+#       ventilation_level:
+#         name: "LG250 Lueftungsstufe"
+#       operation_mode:
+#         deactivate: true

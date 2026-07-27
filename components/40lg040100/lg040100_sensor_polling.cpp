@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cctype>
+#include <string>
 
 namespace esphome
 {
@@ -10,6 +11,41 @@ namespace esphome
     {
 
         static const char *const TAG = "lg040100_sensor_polling";
+
+        static std::string trim_response(const char *response)
+        {
+            if (response == nullptr)
+                return "";
+
+            std::string value(response);
+            size_t start = 0;
+            while (start < value.size() && std::isspace(static_cast<unsigned char>(value[start])))
+                ++start;
+
+            size_t end = value.size();
+            while (end > start && std::isspace(static_cast<unsigned char>(value[end - 1])))
+                --end;
+
+            return value.substr(start, end - start);
+        }
+
+        static bool is_integer_with_trailing_dot(const std::string &value)
+        {
+            if (value.size() < 2 || value.back() != '.')
+                return false;
+
+            size_t index = (value[0] == '-' || value[0] == '+') ? 1 : 0;
+            if (index >= value.size() - 1)
+                return false;
+
+            for (; index < value.size() - 1; ++index)
+            {
+                if (!std::isdigit(static_cast<unsigned char>(value[index])))
+                    return false;
+            }
+
+            return true;
+        }
 
         void WR3223SensorPollingComponent::update()
         {
@@ -59,8 +95,12 @@ namespace esphome
             }
             else if (text_sensor_)
             {
-                ESP_LOGD(TAG, "TextSensor fuer %s: %s", command_, response);
-                text_sensor_->publish_state(response);
+                std::string text_value = trim_response(response);
+                if (is_integer_with_trailing_dot(text_value))
+                    text_value.pop_back();
+
+                ESP_LOGD(TAG, "TextSensor fuer %s: %s", command_, text_value.c_str());
+                text_sensor_->publish_state(text_value);
             }
         }
 

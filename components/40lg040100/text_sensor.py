@@ -26,14 +26,8 @@ REFERENCE_PROFILE_TEXT_SENSORS_CUSTOM = {
         {CONF_COMMAND: "RL", CONF_NAME: "Relais Register Raw"},
     ],
     "lg250": [
-        {CONF_COMMAND: "ER", CONF_NAME: "Error Register Raw"},
-        {CONF_COMMAND: "ST", CONF_NAME: "Status Register Raw"},
-        {CONF_COMMAND: "MD", CONF_NAME: "Mode Register Raw"},
-        {CONF_COMMAND: "SW", CONF_NAME: "Status Write Register Raw"},
-        {CONF_COMMAND: "RL", CONF_NAME: "Relais Register Raw"},
-        {CONF_COMMAND: "II", CONF_NAME: "Identification Register Raw"},
-        {CONF_COMMAND: "CN", CONF_NAME: "Configuration Register Raw"},
-        {CONF_COMMAND: "Ta", CONF_NAME: "Status Ta Register Raw"},
+        {CONF_COMMAND: "ER", CONF_NAME: "LG250 ER Fehler Register Roh"},
+        {CONF_COMMAND: "LS", CONF_NAME: "LG250 LS Aktuelle Lueftungsstufe", CONF_UPDATE_INTERVAL: "30s"},
     ],
     "lg350": [
         {CONF_COMMAND: "ER", CONF_NAME: "Error Register Raw"},
