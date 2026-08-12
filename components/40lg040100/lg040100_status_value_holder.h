@@ -48,9 +48,12 @@ namespace esphome
 
       void setVentilationLevel(int level)
       {
+        ventilation_level_ = level;
+
         stateValueSW &=
             ~(WR3223EnumStatusSW::VENT_LEVEL_0 | WR3223EnumStatusSW::VENT_LEVEL_1 |
               WR3223EnumStatusSW::VENT_LEVEL_2 | WR3223EnumStatusSW::VENT_LEVEL_3);
+
         switch (level)
         {
         case 1:
@@ -62,14 +65,21 @@ namespace esphome
         case 3:
           stateValueSW |= WR3223EnumStatusSW::VENT_LEVEL_3;
           break;
+        case 4:
+          ventilation_level_ = 4;
+          break;
         default:
           stateValueSW |= WR3223EnumStatusSW::VENT_LEVEL_0;
+          ventilation_level_ = 0;
           break;
         }
       }
 
       int getVentilationLevel() const
       {
+        if (ventilation_level_ >= 0 && ventilation_level_ <= 4)
+          return ventilation_level_;
+
         int mask = WR3223EnumStatusSW::VENT_LEVEL_0 |
                    WR3223EnumStatusSW::VENT_LEVEL_1 |
                    WR3223EnumStatusSW::VENT_LEVEL_2 |
@@ -144,6 +154,7 @@ namespace esphome
     private:
       ESPPreferenceObject pref_;
       int stateValueSW{0};
+      int ventilation_level_{0};
     };
 
     using LG040100EnumStatusSW = WR3223EnumStatusSW;

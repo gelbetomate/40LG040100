@@ -392,6 +392,12 @@ select:
     selects:
       ventilation_level:
         name: "LG250 Manuelle Stufenwahl"
+        options:
+          - "Aus"
+          - "Luftstufe 1"
+          - "Luftstufe 2"
+          - "Luftstufe 3"
+          - "Automatik"
       operation_mode:
         name: "LG250 Betriebsmodus"
 

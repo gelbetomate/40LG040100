@@ -19,7 +19,7 @@ LG040100VentilationLevelSelect = lg040100_ns.class_(
 )
 LG040100ModeSelect = lg040100_ns.class_("LG040100ModeSelect", select.Select, cg.Component)
 
-DEFAULT_VENTILATION_LEVEL_OPTIONS = ["AUS", "Luftstufe 1", "Luftstufe 2", "Luftstufe 3"]
+DEFAULT_VENTILATION_LEVEL_OPTIONS = ["Aus", "Luftstufe 1", "Luftstufe 2", "Luftstufe 3", "Automatik"]
 DEFAULT_MODE_OPTIONS = [
     "AUS",
     "Sommerbetrieb",
@@ -40,7 +40,7 @@ VENTILATION_LEVEL_SCHEMA = (
             cv.Optional(CONF_DEACTIVATE, default=False): cv.boolean,
             cv.Optional(
                 CONF_OPTIONS, default=DEFAULT_VENTILATION_LEVEL_OPTIONS
-            ): cv.All(cv.ensure_list(cv.string_strict), cv.Length(min=4, max=4)),
+            ): cv.All(cv.ensure_list(cv.string_strict), cv.Length(min=5, max=5)),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
