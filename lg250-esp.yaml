@@ -387,42 +387,13 @@ binary_sensor:
       vorheizen_aktiv:
         deactivate: true
 
-# HIER NEU: Eingabefelder für Steuerung und Übernahme der Betriebsstunden
-# Ermöglicht das Ändern der Lüftungsstufe direkt aus dem Webinterface
-# Ermöglicht das Ändern der Lüftungsstufe direkt aus dem Webinterface
 select:
-  - platform: template
-    name: "LG250 Manuelle Stufenwahl"
-    icon: "mdi:fan"
-    optimistic: true
-    options:
-      - "Stufe 1"
-      - "Stufe 2"
-      - "Stufe 3"
-      - "Automatik (4)"
-    initial_option: "Automatik (4)"
-    set_action:
-      - lambda: |-
-          if (x == "Stufe 1") {
-            // RS1 schaltet das Wandbedienteil stumm, LS1 setzt Stufe 1
-            id(uart_bus).write_str("\x04" "0011RS1" "\x05");
-            delay(50);
-            id(uart_bus).write_str("\x04" "0011LS1" "\x05");
-          } else if (x == "Stufe 2") {
-            id(uart_bus).write_str("\x04" "0011RS1" "\x05");
-            delay(50);
-            id(uart_bus).write_str("\x04" "0011LS2" "\x05");
-          } else if (x == "Stufe 3") {
-            id(uart_bus).write_str("\x04" "0011RS1" "\x05");
-            delay(50);
-            id(uart_bus).write_str("\x04" "0011LS3" "\x05");
-          } else if (x == "Automatik (4)") {
-            // RS0 übergibt die Kontrolle wieder vollautomatisch zurück ans originale Display
-            id(uart_bus).write_str("\x04" "0011RS0" "\x05");
-            delay(50);
-            id(uart_bus).write_str("\x04" "0011LS4" "\x05");
-          }
-          ESP_LOGI("main", "Bus-Kombibefehl (Remote + Stufe) abgesetzt.");
+  - platform: 40lg040100
+    selects:
+      ventilation_level:
+        name: "LG250 Manuelle Stufenwahl"
+      operation_mode:
+        name: "LG250 Betriebsmodus"
 
 number:
   - platform: template

@@ -38,6 +38,7 @@ namespace esphome
             void write_status();
 
             void set_rs_handshake_enabled(bool enabled) { rs_handshake_enabled_ = enabled; }
+            bool is_rs_handshake_enabled() const { return rs_handshake_enabled_; }
 
         protected:
             void notify_controls();
