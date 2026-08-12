@@ -37,13 +37,19 @@ namespace esphome
             /// @brief Write the current holder status to the device
             void write_status();
 
+            void set_rs_handshake_enabled(bool enabled) { rs_handshake_enabled_ = enabled; }
+
         protected:
             void notify_controls();
 
         private:
+            void request_status_readback_();
+            void write_sw_status_();
+
             WR3223 *parent_;
             WR3223StatusValueHolder *holder_;
             std::vector<WR3223StatusControl *> controls_;
+            bool rs_handshake_enabled_{false};
         };
 
         using LG040100StatusControl = WR3223StatusControl;

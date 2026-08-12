@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cctype>
+#include <cstring>
 #include <string>
 
 namespace esphome
@@ -84,6 +85,10 @@ namespace esphome
                     return;
                 }
 
+                // LG250 liefert UA/UZ als dezimal verschobenen Rohwert (z. B. 22 -> 2.2 V).
+                if (strcmp(command_, "UA") == 0 || strcmp(command_, "UZ") == 0)
+                    value *= 0.1f;
+
                 ESP_LOGD(TAG, "Sensorwert fuer %s: %f", command_, value);
                 sensor_->publish_state(value);
             }
@@ -100,7 +105,7 @@ namespace esphome
                     text_value.pop_back();
 
                 ESP_LOGD(TAG, "TextSensor fuer %s: %s", command_, text_value.c_str());
-                text_sensor_->publish_state(text_value);
+                text_sensor_->publish_state(text_value.c_str());
             }
         }
 

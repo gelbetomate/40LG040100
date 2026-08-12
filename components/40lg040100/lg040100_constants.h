@@ -126,6 +126,9 @@ public:
   // Status schreib byte auslesen/schreiben (nur bei PC Steuerung)
   static constexpr const char *SW = "SW";
 
+  // Remote-Steuerung aktivieren/deaktivieren (1/0) vor SW-Schreibvorgaengen
+  static constexpr const char *RS = "RS";
+
   // Zuluftsoll Temperatur auslesen/schreiben (nur bei PC Steuerung)
   static constexpr const char *SP = "SP";
 

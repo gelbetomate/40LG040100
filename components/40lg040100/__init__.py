@@ -47,6 +47,7 @@ CONF_MODE_UPDATE_INTERVAL = "mode_update_interval"
 CONF_RELAIS_UPDATE_INTERVAL = "relais_update_interval"
 CONF_RESTORE_ATTEMPTS = "restore_attempts"
 CONF_ENABLE_UNSAFE_WRITES = "enable_unsafe_writes"
+CONF_ENABLE_RS_HANDSHAKE = "enable_rs_handshake"
 CONF_REFERENCE_PROFILE = "reference_profile"
 
 def validate_status_interval(value):
@@ -70,6 +71,7 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional(CONF_RELAIS_UPDATE_INTERVAL, default="60s"): cv.update_interval,
      cv.Optional(CONF_RESTORE_ATTEMPTS, default=4): cv.int_,
     cv.Optional(CONF_ENABLE_UNSAFE_WRITES, default=False): cv.boolean,
+    cv.Optional(CONF_ENABLE_RS_HANDSHAKE, default=False): cv.boolean,
     cv.Optional(CONF_REFERENCE_PROFILE, default="none"): cv.one_of("none", "lg150", "lg250", "lg350", lower=True),
     cv.Required(CONF_UART_ID): cv.use_id(uart.UARTComponent),
     cv.Optional(CONF_ERROR_POLLING, default={}): cv.Schema({
@@ -124,6 +126,7 @@ async def to_code(config):
         holder,
     )
     await cg.register_component(status_component, {})
+    cg.add(status_component.set_rs_handshake_enabled(config.get(CONF_ENABLE_RS_HANDSHAKE, False)))
 
     mode_holder = cg.new_Pvariable(config[CONF_LG040100_MODE_HOLDER_ID])
     mode_component = cg.new_Pvariable(

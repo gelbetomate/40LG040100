@@ -89,6 +89,7 @@ uart:
   uart_id: uart_bus
   restore_attempts: 5
   enable_unsafe_writes: true  # HIER AKTIVIERT FÜR DIE SCHREIBTESTS
+  enable_rs_handshake: false
 
 sensor:
   - platform: 40lg040100
@@ -155,8 +156,6 @@ sensor:
         accuracy_decimals: 1
         update_interval: 60s
         id: lg250_ua_volt
-        filters:
-          - multiply: 0.1
 
       - command: "UZ"
         name: "LG250 Steuerspannung Zuluft"
@@ -164,8 +163,6 @@ sensor:
         state_class: measurement
         accuracy_decimals: 1
         update_interval: 60s
-        filters:
-          - multiply: 0.1
 
       - command: "RA"
         name: "LG250 Rueckwaermzahl"
