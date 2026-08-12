@@ -28,7 +28,7 @@ LG040100RelaisComponent = lg040100_ns.class_("LG040100RelaisComponent", cg.Polli
 
 
 # Automatisches Laden der Module
-AUTO_LOAD = ["uart", "text_sensor", "binary_sensor", "switch", "select", "number", "button"]
+AUTO_LOAD = ["uart", "sensor", "text_sensor", "binary_sensor", "switch", "select", "number", "button"]
 
 CONF_LG040100_ID = "lg040100_id"
 CONF_LG040100_CONNECTOR_ID = "lg040100_connector_id"
