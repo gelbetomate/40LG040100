@@ -394,12 +394,18 @@ select:
         name: "LG250 Manuelle Stufenwahl"
         options:
           - "Aus"
-          - "Luftstufe 1"
-          - "Luftstufe 2"
-          - "Luftstufe 3"
-          - "Automatik"
+          - "L1"
+          - "L2"
+          - "L3"
+          - "Auto"
       operation_mode:
         name: "LG250 Betriebsmodus"
+        options:
+          - "AUS"
+          - "SOM"
+          - "SA"
+          - "WIN"
+          - "HAND"
 
 number:
   - platform: template

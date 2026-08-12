@@ -19,13 +19,13 @@ LG040100VentilationLevelSelect = lg040100_ns.class_(
 )
 LG040100ModeSelect = lg040100_ns.class_("LG040100ModeSelect", select.Select, cg.Component)
 
-DEFAULT_VENTILATION_LEVEL_OPTIONS = ["Aus", "Luftstufe 1", "Luftstufe 2", "Luftstufe 3", "Automatik"]
+DEFAULT_VENTILATION_LEVEL_OPTIONS = ["Aus", "L1", "L2", "L3", "Auto"]
 DEFAULT_MODE_OPTIONS = [
     "AUS",
-    "Sommerbetrieb",
-    "Sommer-Abluftbetrieb",
-    "Winterbetrieb",
-    "Handbetrieb",
+    "SOM",
+    "SA",
+    "WIN",
+    "HAND",
 ]
 
 CONF_SELECTS = "selects"
