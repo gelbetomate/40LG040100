@@ -339,10 +339,12 @@ text_sensor:
     lambda: |-
       std::string raw_ls = id(lg250_ls_raw).state;
       int level = -1;
-      try {
-        level = std::stoi(raw_ls);
-      } catch (...) {
-        level = -1;
+      if (!raw_ls.empty()) {
+        char *end = nullptr;
+        long parsed = std::strtol(raw_ls.c_str(), &end, 10);
+        if (end != raw_ls.c_str() && *end == '\0') {
+          level = static_cast<int>(parsed);
+        }
       }
 
       // Manuell: Stufe 1 bis 3
@@ -350,7 +352,7 @@ text_sensor:
       if (level == 2) return {"Manuell - Stufe 2"};
       if (level == 3) return {"Manuell - Stufe 3"};
 
-      // Automatik: Numerical value 4 means Auto mode, then use actual fan RPM to distinguish standby/base/normal/boost.
+      // Automatik: Bei Level 4 echte Drehzahl auswerten.
       if (level == 4) {
         float rpm = id(lg250_v1_m1_zuluftventilator_drehzahl).state;
 
@@ -365,7 +367,7 @@ text_sensor:
         }
       }
 
-      // Fallback: wenn raw wert nicht numerisch ist, direkt auf bekannte Textwerte prüfen.
+      // Fallback: bekannte Muster ohne vollständige Zahl.
       if (raw_ls.find("1") != std::string::npos) return {"Manuell - Stufe 1"};
       if (raw_ls.find("2") != std::string::npos) return {"Manuell - Stufe 2"};
       if (raw_ls.find("3") != std::string::npos) return {"Manuell - Stufe 3"};
