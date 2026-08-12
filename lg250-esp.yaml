@@ -274,9 +274,11 @@ sensor:
     accuracy_decimals: 1
     update_interval: 60s
     lambda: |-
-      // Wenn die Abluftspannung über 0V liegt, läuft die Anlage -> Rechne Zeit hoch
-      if (id(lg250_ua_volt).state > 0.1) {
-        id(global_betriebsstunden) += (60.0 / 3600.0); // Fügt 60 Sekunden als Stunden-Anteil hinzu
+      // Sicherheitscheck: Nur bei gültigem Messwert hochzählen.
+      float ua = id(lg250_ua_volt).state;
+      if (ua > 0.1f && !std::isnan(ua) && !std::isinf(ua)) {
+        // 60 Sekunden / 3600 Sekunden pro Stunde
+        id(global_betriebsstunden) += (60.0 / 3600.0);
       }
       return id(global_betriebsstunden);
 
@@ -336,27 +338,39 @@ text_sensor:
     update_interval: 30s
     lambda: |-
       std::string raw_ls = id(lg250_ls_raw).state;
-      
-      // Wenn das Display starr auf Stufe 1, 2 oder 3 steht
+      int level = -1;
+      try {
+        level = std::stoi(raw_ls);
+      } catch (...) {
+        level = -1;
+      }
+
+      // Manuell: Stufe 1 bis 3
+      if (level == 1) return {"Manuell - Stufe 1"};
+      if (level == 2) return {"Manuell - Stufe 2"};
+      if (level == 3) return {"Manuell - Stufe 3"};
+
+      // Automatik: Numerical value 4 means Auto mode, then use actual fan RPM to distinguish standby/base/normal/boost.
+      if (level == 4) {
+        float rpm = id(lg250_v1_m1_zuluftventilator_drehzahl).state;
+
+        if (rpm < 100.0f) {
+          return {"Automatik - Standby"};
+        } else if (rpm <= 950.0f) {
+          return {"Automatik - Grundlüftung"};
+        } else if (rpm <= 1500.0f) {
+          return {"Automatik - Normalbetrieb"};
+        } else {
+          return {"Automatik - Bedarfslüftung"};
+        }
+      }
+
+      // Fallback: wenn raw wert nicht numerisch ist, direkt auf bekannte Textwerte prüfen.
       if (raw_ls.find("1") != std::string::npos) return {"Manuell - Stufe 1"};
       if (raw_ls.find("2") != std::string::npos) return {"Manuell - Stufe 2"};
       if (raw_ls.find("3") != std::string::npos) return {"Manuell - Stufe 3"};
-      
-      // Wenn das Display im Automatikmodus (4.) ist, prüfen wir die echte Drehzahl (NZ)
-      if (raw_ls.find("4") != std::string::npos) {
-        float rpm = id(lg250_v1_m1_zuluftventilator_drehzahl).state; // Holt die aktuelle Zuluft-Drehzahl
-        
-        if (rpm < 100) {
-          return {"Automatik - Standby"};
-        } else if (rpm <= 950) { // Da dein Log 888 rpm zeigte, greift hier die Grundlüftung
-          return {"Automatik - Grundlüftung"};
-        } else if (rpm > 950 && rpm <= 1500) {
-          return {"Automatik - Normalbetrieb"};
-        } else {
-          return {"Automatik - Party-/Bedarfslüftung"};
-        }
-      }
-      
+      if (raw_ls.find("4") != std::string::npos) return {"Automatik - Betrieb"};
+
       return {"Unbekannter Status"};
 
 binary_sensor:
