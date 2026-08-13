@@ -157,6 +157,8 @@ Der erste Feldtest mit der neuen Konfiguration war erfolgreich:
 - Home Assistant veroeffentlichte anschliessend `LG250 Luftstufe 1 Sollwert = 21`.
 - `LS` blieb unveraendert bei `4`; der Write aendert also den Sollwert, nicht die aktuell aktive Betriebsstufe.
 
+Ein zweiter Feldtest bestaetigte den Bereich auch fuer einen hohen Wert: `L3=82` wurde mit `ACK` (`0x06`) bestaetigt. Der gesendete Frame war `04 30 30 31 31 02 4C 33 38 32 03 76`; Home Assistant veroeffentlichte danach `LG250 Luftstufe 3 Sollwert = 82`.
+
 Ein anschliessender Schreibtest mit `Rd=23` wurde mit `NAK` abgelehnt. Das schliesst den Lesepfad nicht aus: `Rd` kann auf dieser Anlage gelesen werden, ist aber nicht als schreibbarer Befehl bestaetigt. `Rd` wird deshalb in der YAML als schreibgeschuetzter Sensor `LG250 Raum-Solltemperatur (Anzeige)` angeboten, nicht als Number. Der am Bedienteil eingestellte Sollwert bleibt damit in Home Assistant sichtbar. `L1`, `L2` und `L3` bleiben als durch `ACK` bestaetigte Schreibpfade aktiv.
 
 #### RL - vollstaendige offizielle Bitmaske

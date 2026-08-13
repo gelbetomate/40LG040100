@@ -3,8 +3,9 @@
 This repository provides ESPHome external components for Hermes 40LG040100 ventilation and heat-pump controllers.
 
 
-This is work in progress. Please test with care and don't expect it to work at all.
-There is a differnce in the WRS3223 and the 40LG040100 in the codes to be used. But the interface itself seems to be the same. The technical setup for ESPHome worked and I can read some of the values from my Pichler LG250 but not all. As it was not possible to get all data with ESPHome configuration I decided to make a copy of smurgels implementation and trim this to my needs.
+This is work in progress. Test changes carefully on real hardware.
+
+The tested Pichler LG250 uses a native Hermes two-character command protocol over `9600 7E1` serial, not generic Modbus register addressing. The protocol framing uses ASCII command bytes, `EOT`/`STX`/`ETX` control characters, and an XOR checksum for writes. Register availability and write permissions are firmware- and model-dependent.
 
 ## What 40LG040100 Means
 
@@ -45,8 +46,8 @@ Many thanks to this cool work!
 
 - Read key temperatures and runtime values via serial protocol commands
 - Read and publish relay/status flags (compressor, bypass, panel lock, etc.)
-- Control ventilation levels
-- Control mode/status bits (heat pump, additional heating, cooling)
+- Read the current ventilation level and operation mode
+- Write confirmed per-level airflow setpoints (`L1`, `L2`, `L3`)
 - Read and decode error/status messages
 - Persist and restore status/mode state via save/restore buttons
 
@@ -62,7 +63,7 @@ Many thanks to this cool work!
 
 Reference pinout image:
 
-![Serial port pinout](https://github.com/schmurgel-tg/esphome/blob/main/images/pinout.jpg)
+![Serial port pinout](images/pinout.jpg)
 
 ## Installation
 
@@ -198,6 +199,20 @@ button:
 - During startup, the component retries write initialization for a limited number of attempts (`restore_attempts`).
 - `save_state` and `restore_state` buttons are used to persist and recover mode/status configuration.
 
+For the tested Pichler LG250 interface, the following behavior is confirmed:
+
+| Command | Access | Confirmed behavior |
+|---|---|---|
+| `LS` | Read | Current ventilation level; `4` represents base ventilation on the tested unit |
+| `MD` | Read | Operation mode readback is not available on the tested firmware |
+| `L1` | Read/Write | Per-level setpoint; writes receive `ACK` |
+| `L2` | Read/Write | Per-level setpoint; write path available, hardware confirmation pending |
+| `L3` | Read/Write | Per-level setpoint; writes receive `ACK` |
+| `Rd` | Read only | Room-temperature setpoint can be read, but `Rd` writes receive `NAK` |
+| `SW`, `RS` | Not confirmed for this interface | Writes receive `NAK`; do not enable the RS/PC-control handshake by default |
+
+`L1`/`L2`/`L3` change the configured setpoints and do not immediately select the active ventilation level. The active level remains observable through `LS`. The Home Assistant controls for current level and operation mode are therefore read-only on this tested interface.
+
 ## Validation Focus
 
 The practical priority is reliable operation of `40lg040100` end to end: stable reads, predictable writes, and reproducible startup behavior.
@@ -268,7 +283,9 @@ The references repeatedly mention these control and telemetry capabilities:
 
 - This repository currently speaks the native 2-character controller command protocol (not generic Modbus register addressing).
 - The Modbus community mappings are still valuable as validation references for expected behavior and semantics.
-- Cross-model scaling can differ (for example, LG150 reports some setpoints in 1/10 units in community reports). Always verify write scaling on real hardware before enabling automations.
+- The official Hermes interface references document command names and access rights, but they may describe a different controller variant. Treat them as protocol references and verify behavior on the target LG250 firmware.
+- Cross-model scaling and write permissions can differ. The tested LG250 accepts `L1`/`L2`/`L3` setpoint values in the observed `0..100%` range; verify every write on real hardware before enabling automations.
+- `Rd` is exposed as a read-only room-temperature setpoint on the tested LG250. It must not be configured as a writable Number unless a future firmware-specific test confirms that path.
 
 ### Suggested Safe Rollout
 
