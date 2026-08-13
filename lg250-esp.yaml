@@ -89,7 +89,7 @@ uart:
   uart_id: uart_bus
   restore_attempts: 5
   enable_unsafe_writes: true  # HIER AKTIVIERT FÜR DIE SCHREIBTESTS
-  enable_rs_handshake: false
+  enable_rs_handshake: true
 
 sensor:
   - platform: 40lg040100
@@ -410,18 +410,18 @@ select:
         name: "LG250 Manuelle Stufenwahl"
         options:
           - "Aus"
-          - "L1"
-          - "L2"
-          - "L3"
-          - "Auto"
+          - "Luftstufe 1"
+          - "Luftstufe 2"
+          - "Luftstufe 3"
+          - "Automatik"
       operation_mode:
         name: "LG250 Betriebsmodus"
         options:
-          - "AUS"
-          - "SOM"
-          - "SA"
-          - "WIN"
-          - "HAND"
+          - "Aus"
+          - "Sommerbetrieb"
+          - "Sommerbetrieb Abluft"
+          - "Winterbetrieb"
+          - "Handbetrieb Winterbetrieb"
 
 number:
   - platform: template
