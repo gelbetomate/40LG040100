@@ -22,24 +22,7 @@ namespace esphome
 
         void WR3223ModeSelect::control(const std::string &value)
         {
-            auto idx = this->index_of(value);
-            if (!idx.has_value())
-            {
-                ESP_LOGW(TAG, "Unknown mode option: %s", value.c_str());
-                return;
-            }
-            int mode = *idx;
-
-            if (this->mode_ != nullptr)
-            {
-                auto holder = this->mode_->get_holder();
-                if (holder != nullptr)
-                {
-                    holder->set_mode(mode);
-                    this->mode_->write_mode();
-                }
-            }
-
+            ESP_LOGW(TAG, "Betriebsmodus '%s' ist ueber MD laut Hermes-PDF nur lesbar.", value.c_str());
         }
 
         void WR3223ModeSelect::on_mode(WR3223ModeValueHolder *holder)

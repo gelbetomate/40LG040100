@@ -24,39 +24,7 @@ namespace esphome
 
         void WR3223VentilationLevelSelect::control(const std::string &value)
         {
-            int level = 0;
-
-            if (value == "Aus")
-                level = 0;
-            else if (value == "Luftstufe 1")
-                level = 1;
-            else if (value == "Luftstufe 2")
-                level = 2;
-            else if (value == "Luftstufe 3")
-                level = 3;
-            else if (value == "Automatik")
-                level = 4;
-            else
-            {
-                auto idx = this->index_of(value);
-                if (!idx.has_value())
-                {
-                    ESP_LOGW(TAG, "Unknown ventilation option: %s", value.c_str());
-                    return;
-                }
-                level = static_cast<int>(*idx);
-            }
-
-            if (this->status_ != nullptr)
-            {
-                auto *holder = this->status_->get_holder();
-                if (holder != nullptr)
-                {
-                    holder->setVentilationLevel(level);
-                    this->status_->write_status();
-                }
-            }
-
+            ESP_LOGW(TAG, "Luftstufe '%s' ist ueber LS laut Hermes-PDF nur lesbar.", value.c_str());
         }
 
         void WR3223VentilationLevelSelect::on_status(WR3223StatusValueHolder *holder)

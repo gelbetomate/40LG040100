@@ -43,9 +43,9 @@ Die Klartextdiagnose darf deshalb Bit 16 nicht als "Automatik aktiv" ausgeben. `
 
 ## 1.2 Schreibverhalten
 
-Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` durchgefuehrt. Die Auswahl erreicht den Schreibpfad, aber die Steuerung antwortete bisher auf `LS`, `MD` und `SW` mit `NAK`. Fuer den naechsten kontrollierten Feldtest ist `enable_rs_handshake: true` aktiviert; damit wird vor einem SW-Schreibzugriff einmal `RS=1` gesendet. Ob dieser Handshake auf der Pichler-LG250 die erwartete Freigabe aktiviert, muss der RL-Readback zeigen.
+Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` durchgefuehrt. Die Steuerung antwortete auf die bisher getesteten `LS`, `MD`, `SW` und `RS`-Schreibversuche mit `NAK`. Die produktive YAML verwendet deshalb `enable_rs_handshake: false`; die Selects fuer Luftstufe und Betriebsmodus sind reine Anzeige.
 
-Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden anschliessend aus den Komponenten entfernt. Manuelle Schreibaktionen bleiben grundsaetzlich aktiv. Nach dem Neustart waren keine wiederkehrenden automatischen `SW=0`- oder `MD=0`-Schreibversuche mehr im Log sichtbar.
+Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden aus den Komponenten entfernt. Schreibbar bleiben nur die durch die neue PDF belegten Sollwertpfade `L1`, `L2`, `L3` und `LD`; diese werden als Numbers angeboten. Nach dem Neustart waren keine wiederkehrenden automatischen `SW=0`- oder `MD=0`-Schreibversuche mehr im Log sichtbar.
 
 ### Readback nach NAK
 
@@ -128,13 +128,25 @@ Alle bisher verwendeten Register sind durch die PDF bestaetigt: `AE`, `AA`, `Az`
 
 Die Register `MO`, `BY`, `HP`, `HZ` sind in der PDF nicht aufgefuehrt. Das erklaert, warum diese Befehle auf der LG250 `??????.` zurueckliefern.
 
-#### SW - der entscheidende Fund
+#### Schreibrechte laut WP-Schnittstellen-PDF
 
-Die PDF beschreibt `SW` explizit als:
+Die neu hinzugefuegte WP-Schnittstellen-PDF beschreibt dasselbe Telegrammformat, aber eine andere und fuer dieses Projekt entscheidende Registertabelle:
 
-> SW - Status schreib byte auslesen/schreiben **(nur bei PC Steuerung)**
+- `LS` ist **nur lesbar**.
+- `MD` ist **nur lesbar** und hat die dokumentierten Werte `0=Sommer`, `1=Winter`, `2=Hand`, `3=Sommer Abluft`, `4=Plattenwaermetauscher`, `5=Abs Betrieb`.
+- `WP` und `ZH` sind **nur lesbar**.
+- `L1`, `L2`, `L3` und `LD` sind **lesbar und schreibbar**.
+- `SW` und `RS` kommen in dieser Tabelle nicht vor.
 
-Das ist eine plausible Erklaerung fuer das `NAK` bei SW-Schreibzugriffen, aber noch kein Nachweis fuer die konkrete Pichler-LG250-Firmware. Der kontrollierte Test wurde durchgefuehrt: `RS=1` erhielt `NAK`, `RL` blieb `6`, und damit wurde Bit 128 fuer die RS-Bedienung nicht gesetzt. Ein `SW`-Write ist deshalb in diesem Test nicht erneut versucht worden; der Connector liest nach dem abgelehnten RS-Handshake nur den Status zurueck. Die Hermes-/WR3223-Definition fuer `RS` gilt damit fuer diese LG250-Firmware nicht als bestaetigt.
+Das erklaert die bisherigen Feldtests: `LS`, `MD`, `SW` und `RS` mit `NAK` sind kein Beleg fuer ein falsches Telegramm, sondern passen zu den dokumentierten Schreibrechten dieser Variante. Die bisherige `SW`-/RS-Handshake-Annahme wird fuer diese LG250-Schnittstelle verworfen.
+
+Die PDF dokumentiert als Schreibbeispiel `L1=50`:
+
+```text
+04 30 30 31 31 02 4C 31 35 30 03 7B
+```
+
+Die `L1`-/`L2`-/`L3`-Schreibfunktionen sind im Connector bereits vorhanden und wurden in der YAML jetzt als drei Numbers aktiviert. Diese Werte aendern die Sollwerte der einzelnen Stufen; sie starten keine Stufe unmittelbar. Die aktuelle Stufe bleibt ueber `LS` lesbar.
 
 #### RL - vollstaendige offizielle Bitmaske
 

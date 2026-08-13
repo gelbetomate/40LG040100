@@ -444,7 +444,7 @@ select:
   - platform: 40lg040100
     selects:
       ventilation_level:
-        name: "LG250 Manuelle Stufenwahl"
+        name: "LG250 Aktuelle Lueftungsstufe (Anzeige)"
         options:
           - "Aus"
           - "Luftstufe 1"
@@ -452,7 +452,7 @@ select:
           - "Luftstufe 3"
           - "Automatik"
       operation_mode:
-        name: "LG250 Betriebsmodus"
+        name: "LG250 Betriebsmodus (Anzeige)"
         options:
           - "Aus"
           - "Sommerbetrieb"
@@ -463,6 +463,21 @@ select:
 number:
   - platform: 40lg040100
     numbers:
+      vent_level_1_speed:
+        name: "LG250 Luftstufe 1 Sollwert"
+        min_value: 3
+        max_value: 40
+        step: 1
+      vent_level_2_speed:
+        name: "LG250 Luftstufe 2 Sollwert"
+        min_value: 4
+        max_value: 40
+        step: 1
+      vent_level_3_speed:
+        name: "LG250 Luftstufe 3 Sollwert"
+        min_value: 3
+        max_value: 40
+        step: 1
       room_target:
         name: "LG250 Raum-Solltemperatur"
         min_value: 10
