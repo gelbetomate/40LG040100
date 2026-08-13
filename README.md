@@ -205,9 +205,9 @@ For the tested Pichler LG250 interface, the following behavior is confirmed:
 |---|---|---|
 | `LS` | Read | Current ventilation level; `4` represents base ventilation on the tested unit |
 | `MD` | Read | Operation mode readback is not available on the tested firmware |
-| `L1` | Read/Write | Per-level setpoint; writes receive `ACK` |
-| `L2` | Read/Write | Per-level setpoint; write path available, hardware confirmation pending |
-| `L3` | Read/Write | Per-level setpoint; writes receive `ACK` |
+| `L1` | Read/Write | Per-level setpoint; write receives `ACK`, then requires matching readback |
+| `L2` | Read/Write | Per-level setpoint; write path available, matching readback still pending |
+| `L3` | Read/Write | Per-level setpoint; write receives `ACK`, then requires matching readback |
 | `Rd` | Read only | Room-temperature setpoint can be read, but `Rd` writes receive `NAK` |
 | `SW`, `RS` | Not confirmed for this interface | Writes receive `NAK`; do not enable the RS/PC-control handshake by default |
 
@@ -223,6 +223,20 @@ The component is not limited to a fixed WR3223-only entity subset. It is designe
 
 - Numeric registers via `sensor.sensors_custom` (`command: ".."`)
 - Text/raw registers via `text_sensor.text_sensors_custom` (`command: ".."`)
+
+### Generic Component And Model-Specific YAML
+
+The C++ component is intended to remain generic across Hermes/Pichler controller variants such as LG150, LG250, and LG350. It should provide protocol framing, command transport, numeric parsing, checksum handling, and reusable read/write primitives.
+
+Model- and firmware-specific knowledge belongs in the YAML configuration or a model profile:
+
+- which commands are enabled and polled
+- labels and HVAC terminology such as supply air, extract air, and exhaust air
+- scaling and valid ranges
+- whether a command is read-only or writable on the target firmware
+- derived status interpretations and UI entities
+
+The current `lg250-esp.yaml` is therefore a field-tested LG250 configuration, not the universal definition of every `40LG040100` controller. A command returning `??????.` on one unit must remain a firmware-specific observation until another model is tested. Likewise, an `ACK` for `L1` or `L3` on the LG250 does not prove the same write permission on an LG150 or LG350.
 
 Example for broad register access:
 

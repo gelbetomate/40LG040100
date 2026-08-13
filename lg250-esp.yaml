@@ -202,8 +202,10 @@ sensor:
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
-        accuracy_decimals: 0
+        accuracy_decimals: 1
         update_interval: 2min
+        filters:
+          - multiply: 0.1
 
       - command: "V1"
         name: "LG250 V1 Zuluftventilator Status (Test)"

@@ -5,6 +5,8 @@ Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
 
 ## 1) Aktive Sensor-Codes (Produktiv)
 
+Diese Datei beschreibt die Feldtests der konkreten LG250-Anlage. Sie ist kein allgemeines Registerprofil fuer LG150, LG350 oder andere 40LG040100-Firmwarestaende. Generische Transport- und Parsinglogik bleibt im Component; Auswahl, Benennung, Skalierung und fachliche Ableitungen werden modellbezogen in YAML beziehungsweise Profilen festgelegt.
+
 | Code | Funktion | Einheit | Intervall | Beobachtete Werte | Status | Plausibilitaet | Empfehlung |
 |---|---|---|---|---|---|---|---|
 | T1 | Verdampfertemperatur | degC | 30s | 28.8 bis 29.0 | funktioniert | plausibel und stabil | aktiv lassen |
@@ -22,7 +24,7 @@ Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
 | L2 | Luftstufe 2 Sollwert | % | 2min | 33 | funktioniert | plausibel | aktiv lassen |
 | L3 | Luftstufe 3 Sollwert | % | 2min | 68 | funktioniert | plausibel | aktiv lassen |
 | ER | Fehlercode Leistungsteil Rohwert | Code | 60s | 0 | funktioniert | gueltig, kein Fehler aktiv | aktiv lassen |
-| Rd | Raum-Solltemperatur Anzeige | degC | 2min | am Bedienteil eingestellter Wert | funktioniert lesend | Schreibtest `Rd=23` erhielt NAK | als Anzeige aktiv lassen |
+| Rd | Raum-Solltemperatur Anzeige | degC | 2min | Rohwert `154`, vorlaeufig als `15.4 degC` skaliert | funktioniert lesend | Schreibtest `Rd=23` erhielt NAK; Skalierung am Bedienteil gegenpruefen | als Anzeige aktiv lassen |
 
 ## 1.1 Feldtest Betriebsarten und Statusregister
 
@@ -160,9 +162,9 @@ Der erste Feldtest mit der neuen Konfiguration war erfolgreich:
 - Home Assistant veroeffentlichte anschliessend `LG250 Luftstufe 1 Sollwert = 21`.
 - `LS` blieb unveraendert bei `4`; der Write aendert also den Sollwert, nicht die aktuell aktive Betriebsstufe.
 
-Ein zweiter Feldtest bestaetigte den Bereich auch fuer einen hohen Wert: `L3=82` wurde mit `ACK` (`0x06`) bestaetigt. Der gesendete Frame war `04 30 30 31 31 02 4C 33 38 32 03 76`; Home Assistant veroeffentlichte danach `LG250 Luftstufe 3 Sollwert = 82`.
+Ein zweiter Feldtest bestaetigte den Bereich auch fuer einen hohen Wert: `L3=82` wurde mit `ACK` (`0x06`) bestaetigt. Der gesendete Frame war `04 30 30 31 31 02 4C 33 38 32 03 76`; der Write wurde zunaechst in Home Assistant veroeffentlicht. Ein spaeterer Test mit `L3=80` zeigte jedoch, dass ein `ACK` allein keine dauerhafte Uebernahme beweist: Der anschliessende Readback lieferte wieder `L3=68`. Die Number-Komponente liest deshalb nach `ACK` das Register erneut und veroeffentlicht nur den bestaetigten Readback-Wert.
 
-Ein anschliessender Schreibtest mit `Rd=23` wurde mit `NAK` abgelehnt. Das schliesst den Lesepfad nicht aus: `Rd` kann auf dieser Anlage gelesen werden, ist aber nicht als schreibbarer Befehl bestaetigt. `Rd` wird deshalb in der YAML als schreibgeschuetzter Sensor `LG250 Raum-Solltemperatur (Anzeige)` angeboten, nicht als Number. Der am Bedienteil eingestellte Sollwert bleibt damit in Home Assistant sichtbar. `L1`, `L2` und `L3` bleiben als durch `ACK` bestaetigte Schreibpfade aktiv.
+Ein anschliessender Schreibtest mit `Rd=23` wurde mit `NAK` abgelehnt. Das schliesst den Lesepfad nicht aus: `Rd` kann auf dieser Anlage gelesen werden, ist aber nicht als schreibbarer Befehl bestaetigt. Ein Readback von `154` wird im LG250-YAML vorlaeufig mit `0.1` multipliziert und als `15.4 degC` angezeigt, weil der Rohwert sonst als unmoegliche `154 degC` erscheinen wuerde. Diese Skalierung muss noch gegen den am Bedienteil angezeigten Sollwert verifiziert werden. `Rd` bleibt ein schreibgeschuetzter Sensor und wird nicht als Number angeboten. `L1`, `L2` und `L3` bleiben als durch `ACK` bestaetigte Schreibpfade aktiv.
 
 #### RL - vollstaendige offizielle Bitmaske
 

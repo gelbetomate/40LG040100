@@ -56,11 +56,28 @@ namespace esphome
 
             int val = static_cast<int>(value);
             std::string data = std::to_string(val);
-            parent_->connector_->send_write_request(cmd, data, [this, val](char *, bool ok)
+            parent_->connector_->send_write_request(cmd, data, [this, val, cmd](char *, bool ok)
                                                     {
             ESP_LOGD(TAG, "Write %d result %d", val, ok);
-            if (ok)
-                this->publish_state(val); });
+            if (!ok)
+                return;
+
+            this->parent_->connector_->send_request(cmd, [this, val](char *response, bool read_ok)
+                                                    {
+                if (!read_ok) {
+                    ESP_LOGW(TAG, "Write %d ACK, but %s readback failed", val, this->get_command());
+                    return;
+                }
+
+                int readback = WR3223Helper::to_int(response, true);
+                if (readback != val) {
+                    ESP_LOGW(TAG, "Write %d ACK, but readback is %d", val, readback);
+                    this->publish_state(readback);
+                    return;
+                }
+
+                this->publish_state(readback);
+            }); });
         }
 
     } // namespace lg040100
