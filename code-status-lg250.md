@@ -1,6 +1,6 @@
 # LG250 Code-Status (40LG040100)
 
-Stand: 2026-07-26  
+Stand: 2026-08-13
 Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
 
 ## 1) Aktive Sensor-Codes (Produktiv)
@@ -22,6 +22,30 @@ Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
 | L2 | Luftstufe 2 Sollwert | % | 2min | 33 | funktioniert | plausibel | aktiv lassen |
 | L3 | Luftstufe 3 Sollwert | % | 2min | 68 | funktioniert | plausibel | aktiv lassen |
 | ER | Fehlercode Leistungsteil Rohwert | Code | 60s | 0 | funktioniert | gueltig, kein Fehler aktiv | aktiv lassen |
+
+## 1.1 Feldtest Betriebsarten und Statusregister
+
+Die Betriebsarten und Lueftungsstufen wurden am Bedienteil veraendert und anschliessend ueber die Register gelesen. Die Stufe wird ueber `LS` erkannt; `ST` ist ein zusammengesetztes Statusbitfeld und kein weiterer Stufenwert.
+
+| Beobachtung | Registerwerte | Gesicherte Aussage |
+|---|---|---|
+| manueller Betrieb, Stufe 2 oder 3 | `LS=2` bzw. `LS=3` | aktuelle manuelle Lueftungsstufe |
+| Automatikbetrieb | `LS=4` | Automatik-/Grundlueftungsmodus |
+| laufende Anlage | `ST=48` oder `ST=52` | `ST` enthaelt mehrere Statusbits |
+| laufende Ventilatoren | `ST` enthaelt Bit 32 | Bit 32 ist als Luefter aktiv plausibel |
+| manuell und automatisch | `ST` enthaelt Bit 16 | Bit 16 bedeutet nicht automatisch "Automatik aktiv" |
+| Wechsel zwischen `ST=48` und `ST=52` | Differenz ist Bit 4 | Bit 4 ist wahrscheinlich betriebsartabhaengig, fachliche Bezeichnung noch offen |
+| Fehlerabfrage in allen Testzustaenden | `ER=0` | kein Fehler im Fehlerregister |
+
+Die Werte `48` und `52` entsprechen `0b00110000` beziehungsweise `0b00110100`. Der einzige Unterschied ist Bit 4. Die Testfolge spricht dafuer, dass dieses Bit mit Sommer-/Winterbetrieb zusammenhaengt; das ist noch nicht unabhaengig bestaetigt. Bit 8 wurde in der Testreihe nicht beobachtet.
+
+Die Klartextdiagnose darf deshalb Bit 16 nicht als "Automatik aktiv" ausgeben. `MO` liefert auf dieser Firmware weiterhin `??????.` und kann den Betriebsmodus nicht bestaetigen.
+
+## 1.2 Schreibverhalten
+
+Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` und `enable_rs_handshake: false` durchgefuehrt. Die Auswahl erreicht den Schreibpfad, aber die Steuerung antwortet auf `LS`, `MD` und `SW` mit `NAK`.
+
+Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden anschliessend aus den Komponenten entfernt. Manuelle Schreibaktionen bleiben grundsaetzlich aktiv. Nach dem Neustart waren keine wiederkehrenden automatischen `SW=0`- oder `MD=0`-Schreibversuche mehr im Log sichtbar.
 
 ## 2) Zusatzcodes getestet, auf deiner Anlage nicht unterstuetzt
 
@@ -145,11 +169,15 @@ Beispiel:
 
 ### 7.3 Schreib-Telegramm (nur wenn enable_unsafe_writes: true)
 
-Format:
+Read-Write-Anforderung vom PC:
 
-EOT ADR ADR ADR ADR STX CMD1 CMD2 DATA... ETX CHK
+EOT ADR ADR ADR ADR CMD1 CMD2 DATA... ETX
 
-CHK ist XOR-Checksumme ueber CMD1..ETX.
+Beispiel `LS=3`:
+
+`04 30 30 31 31 4C 53 33 03`
+
+Die Steuerung quittiert die Schreibanforderung mit einem einzelnen ACK oder NAK. Die Checksumme gehoert zu den Antworttelegrammen der Steuerung; sie wird nicht an die Schreibanforderung angehaengt. Dieses Format ist aus der externen WR3223-Protokollbeschreibung abgeleitet und muss auf der LG250 noch verifiziert werden.
 
 ## 8) Vergleich zu Modbus
 
