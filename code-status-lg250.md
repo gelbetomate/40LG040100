@@ -43,7 +43,7 @@ Die Klartextdiagnose darf deshalb Bit 16 nicht als "Automatik aktiv" ausgeben. `
 
 ## 1.2 Schreibverhalten
 
-Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` und `enable_rs_handshake: false` durchgefuehrt. Die Auswahl erreicht den Schreibpfad, aber die Steuerung antwortet auf `LS`, `MD` und `SW` mit `NAK`.
+Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` und `enable_rs_handshake: false` durchgefuehrt. Die Auswahl erreicht den Schreibpfad, aber die Steuerung antwortet auf `LS`, `MD` und `SW` mit `NAK`. Die Hermes-PDF beschreibt `SW` zwar als nur bei PC-Steuerung verwendbar; ob `RS=1` auf der Pichler-LG250 diese Freigabe aktiviert, ist noch nicht durch einen Feldtest bestaetigt.
 
 Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden anschliessend aus den Komponenten entfernt. Manuelle Schreibaktionen bleiben grundsaetzlich aktiv. Nach dem Neustart waren keine wiederkehrenden automatischen `SW=0`- oder `MD=0`-Schreibversuche mehr im Log sichtbar.
 
@@ -52,6 +52,156 @@ Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden an
 Antworten wie `??????.` koennen formal als gueltige Antworttelegramme ankommen, sind aber kein numerischer Status. Sie duerfen deshalb nicht als `0` uebernommen werden. Die Value-Holder pruefen Readbacks jetzt strikt numerisch; bei einem ungueltigen `SW`- oder `MD`-Readback bleibt der bisherige interne Zustand erhalten.
 
 Selects veroeffentlichen einen neuen Wert erst nach bestaetigtem Write. Bei `NAK` oder ungueltigem Readback bleibt in Home Assistant der zuletzt bestaetigte Anlagenzustand sichtbar.
+
+### 1.2.1 Offizielle Pichler-Modbusliste fuer LG150/LG250A
+
+Die lokal vorliegende Datei `documents/LIST_Modbus_ES1015_FW_LG150AB_LG250A_v2.0.0.xlsx` beschreibt eine separate Modbus-Schnittstelle:
+
+- Datapoints werden mit Funktionscode 04 als Input Register gelesen.
+- Setpoints werden mit Funktionscode 03 gelesen und Funktionscode 06 geschrieben.
+- Alle Werte sind unsigned 16-Bit-Register.
+- Die Liste enthaelt keine Bit-Untertabellen fuer `Betriebsstatus`; eine Aussage wie "Bit 16" ist daraus nicht ableitbar.
+
+Relevante offizielle Modbus-Adressen:
+
+| Funktion | Modbus-Adresse | Typ | Dokumentierte Bedeutung |
+|---|---:|---|---|
+| Sommer-/Winterbetrieb | 1 | Setpoint | `1=Sommer`, `2=Winter` |
+| Luftstufe | 2 | Setpoint | `0=Standby`, `1=LS1`, `2=LS2`, `3=LS3`, `4=Grundlueftung` |
+| Betriebsstatus | 48 | Input Register | Betriebsstatus, ohne Bitaufloesung in der Liste |
+| Filter-Restzeit | 50 | Input Register | Naechster Filterwechsel in Stunden |
+| Bypass-Klappenposition | 51 | Input Register | Klappenposition |
+| Aktuelle Luftstufe | 59 | Input Register | aktuelle Lueftungsstufe |
+| Fehler Z01 bis Z21 | 60 bis 80 | Input Register | einzelne Fehler-/Statusmeldungen |
+| Betriebsstunden LS2/LS3/Grund/gesamt | 81 bis 84 | Input Register | Betriebsstunden |
+| Betriebsstunden Vorheizregister/Bypass/LS1 | 85, 86, 88 | Input Register | Betriebsstunden |
+
+Wichtig fuer dieses Projekt: Diese Adressen sind Modbus-Adressen und keine neuen Befehle fuer das aktuell implementierte Hermes-/WR3223-Textprotokoll (`LS`, `ST`, `SW`, `MD` usw.). Die offiziellen Modbus-Datapoints sind zudem laut Liste lesbar; Schreibzugriffe sind nur fuer die Setpoints dokumentiert. Deshalb erklaert die Liste die bisherigen `NAK`-Antworten auf `SW` und `MD` nicht direkt und darf nicht ohne einen Modbus-Funktionscode-Adapter in die bestehende YAML-Komponente uebersetzt werden.
+
+Die offizielle Definition bestaetigt jedoch die fachliche Interpretation von `LS=4`: Das entspricht `Grundlueftung`. Sie bestaetigt nicht, dass `ST` die Luftstufe oder einen Automatik-Bitwert enthaelt. Die beobachteten Werte `ST=48` und `ST=52` bleiben daher bis zu einer herstellerspezifischen Bitbeschreibung ein empirisches Rohstatusfeld.
+
+### 1.2.2 Webserver-Beispiel aus der Hermes-Schnittstelle
+
+Der Beispielcode unter `documents/webserver/` ist fuer die Protokollanalyse besonders relevant. In `htl-pic.c` wird ein serieller Datenstrom mit folgendem Format verarbeitet:
+
+- Baudrate im Beispiel: 19200.
+- Telegrammstart: Byte `4` (`SOT`).
+- Telegrammende: Byte `5` (`EOT`).
+- Vor der Telegramm-ID wird an Position 2 ein Nullbyte erwartet.
+- Die Telegramm-ID steht an Position 3.
+- Nutzdaten beginnen bei Position 8.
+- Fuer die dort verwendeten Telegramme wird keine XOR- oder CRC-Pruefsumme verarbeitet.
+
+Der Parser kennt mindestens diese IDs:
+
+| ID | Bedeutung | Nutzdaten |
+|---:|---|---|
+| 17 | Filter-Restlaufzeit | Bytes 8 und 9, 16-Bit-Wert |
+| 8 | aktuelle Luftstufe | Byte 8 |
+| 7 | Raum-Solltemperatur | Byte 8 |
+| 6 | Raum-Isttemperatur | Bytes 8 und 9, 16-Bit-Wert / 10 |
+
+Besonders wichtig fuer die Binärcode-Suche ist die explizite Sonderbehandlung:
+
+```c
+if (lst == 85) { lst = 4; }
+```
+
+Damit ist fuer diese Schnittstellenvariante dokumentiert, dass der Rohwert `85` (`0x55`) die fachliche Luftstufe `4` beziehungsweise Grundlueftung repraesentiert. Das passt zur offiziellen Modbusliste, die fuer die Luftstufe ebenfalls `4=Grundlueftung` definiert. Es ist aber noch nicht bewiesen, dass unser aktueller `LS`-Readback denselben Rohwertpfad benutzt; dort beobachten wir bisher bereits formatierte Werte wie `4`.
+
+Der Webserver-Code ist deshalb ein starker Hinweis auf ein Hermes-/Twin-Datenprotokoll, aber kein Beweis fuer identische Telegramme auf unserem Anschluss: Beispiel und aktueller ESPHome-Aufbau unterscheiden sich bei Baudrate, Rahmenbytes und Datenformat. Die Klasse `WR3223Connector` darf daher nicht allein aufgrund ihres Namens als Herstellerbezeichnung gelten. Vor einer Änderung am Connector müssen ein aufgezeichnetes Telegramm oder die PDF-Spezifikation bestätigen, ob der LG250-Anschluss die Variante mit `SOT=4/EOT=5` oder die aktuell beobachtete Variante mit `EOT=4/ENQ=5`, `STX/ETX` und XOR verwendet.
+
+Der Beispielcode liefert dennoch direkt verwertbare Tests:
+
+1. Nach Rohwert `0x55` fuer die Luftstufe suchen.
+2. Eine Filter-Restlaufzeit als 16-Bit-High-/Low-Byte pruefen.
+3. Raumtemperatur als 16-Bit-Wert mit Faktor 0.1 pruefen.
+4. Die Telegramm-ID-Positionen und Rahmenbytes getrennt vom bestehenden `LS`-/`ST`-Textparser protokollieren.
+
+### 1.2.3 Ergebnisse aus der Hermes PDF-Dokumentation
+
+Die Schnittstellen-PDF bestaetigt die Registernamen und liefert erstmals offizielle Bitbelegungen.
+
+#### Register-Uebersicht laut PDF
+
+Alle bisher verwendeten Register sind durch die PDF bestaetigt: `AE`, `AA`, `Az`, `Aa`, `AR`, `AZ`, `AP`, `AN`, `AV`, `T1`-`T8`, `LS`, `L1`-`L3`, `LD`, `Ld`, `EC`, `Es`, `ES`, `EW`, `EE`, `EA`, `ER`, `ST`, `SW`, `RL`, `UZ`, `UA`, `NZ`, `NA`, `NM`, `MD`, `CN`, `KM`, `ZH`, `ZE`, `WP`, `PA`, `II`, `rT`.
+
+Die Register `MO`, `BY`, `HP`, `HZ` sind in der PDF nicht aufgefuehrt. Das erklaert, warum diese Befehle auf der LG250 `??????.` zurueckliefern.
+
+#### SW - der entscheidende Fund
+
+Die PDF beschreibt `SW` explizit als:
+
+> SW - Status schreib byte auslesen/schreiben **(nur bei PC Steuerung)**
+
+Das ist eine plausible Erklaerung fuer das `NAK` bei SW-Schreibzugriffen, aber noch kein Nachweis fuer die konkrete Pichler-LG250-Firmware. Dafuer existiert im Connector ein optionaler RS-Handshake-Pfad (`send_write_request RS=1` vor dem SW-Write). Er bleibt in der Produktiv-YAML vorerst deaktiviert, bis ein kontrollierter Feldtest bestaetigt, dass `RS=1` den RL-Zustand `Bedienung ueber RS Schnittstelle` setzt und anschliessende SW-/MD-Schreibzugriffe akzeptiert werden.
+
+#### RL - vollstaendige offizielle Bitmaske
+
+Die Bitmaske fuer `RL` (Relais lesen) ist jetzt durch die PDF gesichert:
+
+| Bitmask | Bedeutung |
+|---:|---|
+| 1 | Kompressor |
+| 2 | Zusatzheizung Relais |
+| 4 | Erdwaermetauscher |
+| 8 | Bypass |
+| 16 | Vorheizregister |
+| 32 | Netzrelais Bypass |
+| 64 | Bedienteil aktiv |
+| 128 | Bedienung ueber RS Schnittstelle |
+| 256 | Luftstufe vorhanden |
+| 512 | WW_Nachheizregister |
+| 2048 | Magnetventil |
+| 4096 | Vorheizen aktiv |
+
+Die Bitmaske in `binary_sensor.py` stimmt vollstaendig mit der PDF ueberein; das Bitmuster springt absichtlich von 512 auf 2048 und laesst 1024 aus.
+
+#### ER - offizielle Fehlercodes
+
+| Hex-Wert | Dezimalwert | Bedeutung |
+|---|---:|---|
+| 0x00 | 0 | kein Fehler |
+| 0x81 | 129 | Drehzahldifferenz (delta_n_error) |
+| 0x80 | 128 | Zuluftventilator / n500error |
+| 0x84 | 132 | Abluftventilator |
+| 0x82 | 130 | Kondensatorfehler |
+| 0x04 | 4 | HD-Fehler |
+| 0x85 | 133 | Vorheizregister-Fehler |
+| 0x3y | 49-56 | Unterbrechung Sensor y (y=1 T1, y=2 T2, y=3 T3, y=5 T5, y=6 T6, y=7 EWT, y=8 VHR) |
+| 0x1y | 17-24 | Kurzschluss Sensor y (gleiche y-Zuordnung) |
+
+Der `ER`-Sensor hat jetzt eine Klartextdiagnose (`LG250 ER Fehlerdiagnose`), die alle obigen Codes dekodiert.
+
+#### Temperatursensoren T1-T6 laut PDF
+
+Die YAML-Sensor-Labels waren falsch benannt. Korrekte Zuordnung laut PDF:
+
+| Register | Offizielle Bedeutung |
+|---|---|
+| T1 | Verdampfertemperatur Istwert |
+| T2 | Kondensatortemperatur |
+| T3 | Aussentemperatur |
+| T4 | Ablufttemperatur (Raumtemperatur) - nicht in der PDF explizit, aber bestaetigt durch Feldtest |
+| T5 | Temperatur nach Waermetauscher (Fortluft) |
+| T6 | Zulufttemperatur - neu aktiviert |
+| T7 | Temperatur nach Solevorwaermung |
+| T8 | Temperatur nach Vorheizregister |
+
+Die YAML-Sensornamen wurden korrigiert und T6 wurde neu hinzugefuegt.
+
+#### rT - Relaistest
+
+`rT` ist ein reines Schreib-Register fuer Relaistests:
+- `rT 0x5501`: Test Relais 1
+- `rT 0x5502`: Test Relais 2
+- `rT 0x550C`: Test Relais 12
+
+Dieser Befehl ist nur fuer Servicezwecke relevant und nicht in der produktiven YAML aktiviert.
+
+#### ST - noch ohne offizielle Bitdefinition
+
+Die PDF beschreibt `ST` nur als „Status auslesen" ohne Bitaufschluesselung. Die empirisch ermittelten Werte `ST=48` (0b00110000) und `ST=52` (0b00110100) bleiben vorlaeufig mit neutralen Labels. Die Bitdefinitionen aus einer Hermes-/WR3223-Dokumentation duerfen nicht automatisch der Pichler-LG250 zugeordnet werden.
 
 ## 1.3 Display-Menues und Zielabbildung in Home Assistant
 

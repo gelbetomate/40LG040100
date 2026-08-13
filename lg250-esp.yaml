@@ -88,14 +88,14 @@ uart:
   id: my_lg250_controller  # <-- DIESE ID HIER ERGÄNZEN
   uart_id: uart_bus
   restore_attempts: 5
-  enable_unsafe_writes: true  # HIER AKTIVIERT FÜR DIE SCHREIBTESTS
+  enable_unsafe_writes: true
   enable_rs_handshake: false
 
 sensor:
   - platform: 40lg040100
     sensors_custom:
       - command: "T1"
-        name: "LG250 T1 Aussenluft"
+        name: "LG250 T1 Verdampfertemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -103,7 +103,7 @@ sensor:
         update_interval: 30s
 
       - command: "T2"
-        name: "LG250 T2 Zulufttemperatur"
+        name: "LG250 T2 Kondensatortemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -111,7 +111,7 @@ sensor:
         update_interval: 30s
 
       - command: "T3"
-        name: "LG250 T3 Ablufttemperatur"
+        name: "LG250 T3 Aussentemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -119,7 +119,7 @@ sensor:
         update_interval: 30s
 
       - command: "T4"
-        name: "LG250 T4 Fortlufttemperatur"
+        name: "LG250 T4 Ablufttemperatur Raum"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -127,7 +127,15 @@ sensor:
         update_interval: 30s
 
       - command: "T5"
-        name: "LG250 T5 Nach Waermetauscher (Test)"
+        name: "LG250 T5 Nach Waermetauscher Fortluft"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 30s
+
+      - command: "T6"
+        name: "LG250 T6 Zulufttemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -292,6 +300,7 @@ text_sensor:
 
       - command: "ER"
         name: "LG250 ER Fehler Register Roh"
+        id: lg250_er_raw
         update_interval: 60s
 
       - command: "ST"
@@ -324,12 +333,40 @@ text_sensor:
       std::string raw_st = id(lg250_st_sensor).state;
       int val = atoi(raw_st.c_str());
       std::string result = "";
-      if (val & 4)   result += "Betriebsart-Bit 4 aktiv | ";
-      if (val & 16)  result += "Status-Bit 16 aktiv | ";
-      if (val & 32)  result += "Lüfter EIN | ";
-      if (val & 8)   result += "STÖRUNG! | ";
+      if (val & 4)   result += "Bit4 (Bypass?) | ";
+      if (val & 8)   result += "STOERUNG! | ";
+      if (val & 16)  result += "Bit16 | ";
+      if (val & 32)  result += "Luefter EIN | ";
       if (result == "") return {"Anlage im Standby"};
-      return result.substr(0, result.length() - 3);      
+      return result.substr(0, result.length() - 3);
+
+  - platform: template
+    name: "LG250 ER Fehlerdiagnose"
+    icon: "mdi:alert-circle-outline"
+    update_interval: 60s
+    lambda: |-
+      std::string raw = id(lg250_er_raw).state;
+      if (raw.empty()) return {"Unbekannt"};
+      char *endp = nullptr;
+      long val = std::strtol(raw.c_str(), &endp, 10);
+      if (endp == raw.c_str()) return {"Unlesbar: " + raw};
+      if (val == 0) return {"Kein Fehler"};
+      if (val == 0x81) return {"STOERUNG: Drehzahldifferenz (delta_n)"};
+      if (val == 0x80) return {"STOERUNG: Zuluftventilator / n500"};
+      if (val == 0x84) return {"STOERUNG: Abluftventilator"};
+      if (val == 0x82) return {"STOERUNG: Kondensatorfehler"};
+      if (val == 0x04) return {"STOERUNG: HD-Fehler"};
+      if (val == 0x85) return {"STOERUNG: Vorheizregister"};
+      static const char* snamen[] = {"?","Verdampfer T1","Kondensator T2","Aussen T3","T4","Fortluft T5","Zuluft T6","EWT T7","VHR T8"};
+      if ((val & 0xF0) == 0x30) {
+        int y = val & 0x0F;
+        return {"STOERUNG: Unterbrechung " + std::string((y >= 1 && y <= 8) ? snamen[y] : "unbekannt")};
+      }
+      if ((val & 0xF0) == 0x10) {
+        int y = val & 0x0F;
+        return {"STOERUNG: Kurzschluss " + std::string((y >= 1 && y <= 8) ? snamen[y] : "unbekannt")};
+      }
+      return {"STOERUNG: Code " + raw};
 
   # NEUER TEXT-SENSOR: Übersetzt den Status inkl. der Grundlüftung
   - platform: template
