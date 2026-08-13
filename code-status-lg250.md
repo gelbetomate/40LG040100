@@ -51,6 +51,122 @@ Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden an
 
 Antworten wie `??????.` koennen formal als gueltige Antworttelegramme ankommen, sind aber kein numerischer Status. Sie duerfen deshalb nicht als `0` uebernommen werden. Die Value-Holder pruefen Readbacks jetzt strikt numerisch; bei einem ungueltigen `SW`- oder `MD`-Readback bleibt der bisherige interne Zustand erhalten.
 
+## 1.3 Display-Menues und Zielabbildung in Home Assistant
+
+Die Screenshots zeigen ein BDE-Comfort-Bedienteil. Die Menues lassen sich fuer Home Assistant in folgende Funktionsgruppen ordnen:
+
+### A) Hauptanzeige
+
+Die Hauptanzeige zeigt:
+
+- Uhrzeit und Datum
+- aktuelle Lueftungsstufe, zum Beispiel `Luftstufe 3`
+- Jahreszeit, `Sommer` oder `Winter`
+- Raumtemperatur
+- Betriebsart, zum Beispiel `Automatikbetrieb`
+
+Ziel in HA: eine kompakte Statusansicht aus `LS`, `ST`, `T4` beziehungsweise der passenden Raumtemperatur und den Ventilatordrehzahlen. `LS=1..3` steht fuer manuelle Stufen; `LS=4` wird auf dieser Anlage als Automatik-/Grundlueftungsmodus beobachtet.
+
+### B) Steuerung
+
+Das Menue "Steuerung" umfasst:
+
+1. Betriebsmodus: `Sommerbetrieb` oder `Winterbetrieb`
+2. Kuehlung: Ein/Aus
+3. Lueftungsstufe: `Aus`, `Luftstufe 1`, `Luftstufe 2`, `Luftstufe 3`, Automatik beziehungsweise Grundlueftung
+4. Waermepumpe: Ein/Aus
+5. Zusatzheizung: Ein/Aus
+
+Ziel in HA: ein Select fuer den Betriebsmodus, ein Select fuer die Lueftungsstufe sowie Switches fuer Kuehlung, Waermepumpe und Zusatzheizung. Die zugehoerigen Protokollkandidaten sind `MD`, `LS` beziehungsweise `SW`; die LG250 quittiert aktuelle Schreibversuche jedoch noch mit `NAK`.
+
+### C) Zeitprogramme
+
+Es gibt getrennte Zeitprogramme fuer:
+
+- Sommer
+- Winter
+
+Ein Zeitprogramm enthaelt mindestens:
+
+- Wochentag
+- Beginn
+- Ende
+- Zielstufe, zum Beispiel `Luftstufe 3` oder `Grundlueftung`
+- Speichern beziehungsweise Aktivieren
+
+Ziel in HA: Wochenplan oder mehrere Zeitplan-Automationen. Die Zeitplanwerte sind in den bisher getesteten Registern noch nicht belastbar identifiziert. Die direkt getesteten Kandidaten `H1` bis `H4`, `HL`, `FH` und `FR` liefern auf dieser Anlage keine gueltigen Werte oder Platzhalterantworten.
+
+### D) Filter und Wartung
+
+Das Display zeigt:
+
+- Filter-Restlaufzeit, im Screenshot `2284 h`
+- Filter Reset
+
+Ziel in HA: Sensor fuer die Filterlaufzeit und ein Button fuer den Reset. Der angefragte Wert ist noch nicht sicher einem lesbaren Register zugeordnet; `FH` und `FR` waren auf dieser Firmware nicht gueltig. Ein Reset darf erst implementiert werden, wenn das Schreibregister und die erforderliche Sequenz bekannt sind.
+
+### E) Fehlerspeicher
+
+Das Display kann bis zu fuenf Fehler anzeigen, jeweils mit:
+
+- Fehlernummer
+- Fehlertext
+- Datum/Uhrzeit
+
+Ziel in HA: Fehlerbit, aktueller Fehlertext und spaeter ein Fehlerarchiv. `ER=0` liefert aktuell verlaesslich "kein Fehler". Ein historischer Fehlerspeicher ist durch `ER` allein noch nicht abgedeckt.
+
+### F) Systeminformationen
+
+Die Systeminformationen zeigen unter anderem:
+
+- Betriebsstunden je Luftstufe
+- Betriebsstunden Grundlueftung
+- Betriebsstunden Zusatzheizung
+- Betriebsstunden Sole-EWT
+- Raum-Solltemperatur
+- Filter-Restlaufzeit
+- Geraetetyp und Softwarestand
+
+Ziel in HA: diagnostische Sensoren fuer Laufzeiten, Raum-Solltemperatur, Filterzeit, Geraet und Firmware. Die Screenshots bestaetigen die fachlichen Werte, aber nicht die Protokollregister. Die bisher getesteten Stundenregister `H1` bis `H4` und `HL` waren auf dieser LG250 nicht lesbar.
+
+### G) Service
+
+Das Service-Hauptmenue ist passwortgeschuetzt. Sichtbar sind mindestens:
+
+- Zeitprogramm Winter
+- Filter
+- Dauer Luftstufe 3
+- Fehlerspeicher
+- Geraete-Neustart
+
+Ziel in HA: Servicefunktionen nur als bewusst geschuetzte Diagnose-/Konfigurationsaktionen. Ein Neustart-Button und schreibende Serviceparameter werden erst umgesetzt, wenn die Protokollbefehle eindeutig bekannt sind.
+
+### Umsetzungsstatus der naechsten Funktionen
+
+| Displayfunktion | HA-Umsetzung | Registerstatus |
+|---|---|---|
+| Raum-Solltemperatur | `number` `LG250 Raum-Solltemperatur` aktiviert | `Rd` ist als Raumsollwert definiert; Lesen/Schreiben muss am Geraet noch bestaetigt werden |
+| Filter-Restlaufzeit | noch nicht produktiv aktiviert | `FH`/`FR` liefern Platzhalter; `FI` bleibt Testkandidat |
+| Zeitprogramm Sommer/Winter | noch nicht produktiv aktiviert | Register und Schreibsequenz noch nicht identifiziert |
+| Fehlerarchiv | noch nicht produktiv aktiviert | `ER` liefert aktuell den Fehlerstatus, nicht nachweislich das Archiv |
+| Software-/Geraeteinformation | noch nicht produktiv aktiviert | `II` ist ein Identifikationskandidat, am Geraet noch nicht bestaetigt |
+
+### HA-Zielstruktur
+
+Die Display-Funktionen sollten in HA in diese Bereiche aufgeteilt werden:
+
+| HA-Bereich | Entitaeten |
+|---|---|
+| Steuerung | Select Betriebsmodus, Select Lueftungsstufe, Switch Kuehlung, Waermepumpe, Zusatzheizung |
+| Status | aktuelle Stufe, Betriebsart, Raumtemperatur, Drehzahlen, Rohstatus |
+| Zeitplan | Sommer- und Winter-Zeitplan als Automationen oder Wochenplan |
+| Wartung | Filter-Restlaufzeit, Filter-Reset-Button |
+| Diagnose | Fehlerstatus, Fehlertext, Fehlerarchiv, ST/ER-Rohwerte |
+| Systeminfo | Betriebsstunden, Solltemperatur, Geraet, Softwarestand |
+| Service | Neustart und geschuetzte Parameter erst nach Protokollverifikation |
+
+Diese Struktur ist die Arbeitsgrundlage fuer den weiteren Ausbau. Sicher implementiert sind zuerst Status und Lesen; Schreiben, Filterreset, Zeitprogramme und Servicefunktionen brauchen jeweils einen eigenen Protokolltest.
+
 ## 2) Zusatzcodes getestet, auf deiner Anlage nicht unterstuetzt
 
 | Code | Erwartete Bedeutung | Intervall im Test | Ergebnis im Log | Status | Empfehlung |

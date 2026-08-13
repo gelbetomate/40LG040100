@@ -424,6 +424,14 @@ select:
           - "Handbetrieb Winterbetrieb"
 
 number:
+  - platform: 40lg040100
+    numbers:
+      room_target:
+        name: "LG250 Raum-Solltemperatur"
+        min_value: 10
+        max_value: 30
+        step: 0.5
+
   - platform: template
     name: "LG250 Betriebsstunden vom Display eintragen"
     icon: "mdi:counter"
