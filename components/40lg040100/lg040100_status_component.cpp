@@ -66,10 +66,15 @@ namespace esphome
                     [this](char *answer, bool success)
                     {
                         ESP_LOGD(TAG, "RS handshake response: %s success=%d", answer, success);
-                        if (!success)
-                            ESP_LOGW(TAG, "RS handshake failed - trying SW write anyway.");
-
-                        write_sw_status_();
+                        if (success)
+                        {
+                            write_sw_status_();
+                        }
+                        else
+                        {
+                            ESP_LOGW(TAG, "RS handshake failed - SW write skipped.");
+                            request_status_readback_();
+                        }
                     });
                 return;
             }

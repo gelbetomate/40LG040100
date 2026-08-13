@@ -134,7 +134,7 @@ Die PDF beschreibt `SW` explizit als:
 
 > SW - Status schreib byte auslesen/schreiben **(nur bei PC Steuerung)**
 
-Das ist eine plausible Erklaerung fuer das `NAK` bei SW-Schreibzugriffen, aber noch kein Nachweis fuer die konkrete Pichler-LG250-Firmware. Der kontrollierte Test muss zeigen, ob `RS=1` den RL-Zustand `Bedienung ueber RS Schnittstelle` setzt und anschliessende SW-/MD-Schreibzugriffe akzeptiert. Vor dem Test war `RL=6`; bei Erfolg waere als Hinweis ein gesetztes Bit 128 zu erwarten, also beispielsweise `RL=134`.
+Das ist eine plausible Erklaerung fuer das `NAK` bei SW-Schreibzugriffen, aber noch kein Nachweis fuer die konkrete Pichler-LG250-Firmware. Der kontrollierte Test wurde durchgefuehrt: `RS=1` erhielt `NAK`, `RL` blieb `6`, und damit wurde Bit 128 fuer die RS-Bedienung nicht gesetzt. Ein `SW`-Write ist deshalb in diesem Test nicht erneut versucht worden; der Connector liest nach dem abgelehnten RS-Handshake nur den Status zurueck. Die Hermes-/WR3223-Definition fuer `RS` gilt damit fuer diese LG250-Firmware nicht als bestaetigt.
 
 #### RL - vollstaendige offizielle Bitmaske
 
