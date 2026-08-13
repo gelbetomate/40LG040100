@@ -332,29 +332,29 @@ namespace esphome
 
         if (req.second.is_write)
         {
-          // Schreibanforderung: EOT + ADR + C1 + C2 + DATA... + ETX.
-          // Die Steuerung quittiert diese Anforderung mit ACK/NAK; die
-          // Antworttelegramme der Steuerung enthalten die Checksumme.
+          // Schreibanforderung: EOT + ADR + STX + C1 + C2 + DATA... + ETX + CHK
           size_t len = req.second.data.size();
-          std::vector<uint8_t> msg(8 + len);
+          std::vector<uint8_t> msg(10 + len);
 
-          // Adressierung
+          // Adressierung und STX
           msg[0] = MessageControl::EOT;
           msg[1] = 0x30; // Zehnerstelle ("0")
           msg[2] = 0x30; // Zehnerstelle wiederholen
           msg[3] = 0x31; // Einerstelle ("1")
           msg[4] = 0x31; // Einerstelle wiederholen
+          msg[5] = MessageControl::STX;
 
           // Kommando
-          msg[5] = req.first[0];
-          msg[6] = req.first[1];
+          msg[6] = req.first[0];
+          msg[7] = req.first[1];
 
           for (size_t i = 0; i < len; i++)
           {
-            msg[7 + i] = req.second.data[i];
+            msg[8 + i] = req.second.data[i];
           }
           // Abschluss
-          msg[7 + len] = MessageControl::ETX;
+          msg[8 + len] = MessageControl::ETX;
+          msg[9 + len] = buildCheckSum((char *)msg.data(), 6, 8 + len);
 
           write_array(msg.data(), msg.size());
           flush();

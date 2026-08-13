@@ -47,47 +47,17 @@ namespace esphome
                 level = static_cast<int>(*idx);
             }
 
-            auto apply_success = [this, value, level]() {
-                if (this->status_ != nullptr)
-                {
-                    auto *holder = this->status_->get_holder();
-                    if (holder != nullptr)
-                        holder->setVentilationLevel(level);
-                }
-                this->publish_state(value);
-            };
-
-            auto write_ls = [this, level, apply_success]() {
-                if (this->parent_ == nullptr || this->parent_->connector_ == nullptr)
-                    return;
-
-                this->parent_->connector_->send_write_request(
-                    WR3223Commands::LS, std::to_string(level),
-                    [this, apply_success, level](char *answer, bool success)
-                    {
-                        ESP_LOGD(TAG, "LS write level=%d success=%d answer=%s", level, success, answer ? answer : "<null>");
-                        if (success)
-                            apply_success();
-                    });
-            };
-
-            if (this->status_ != nullptr && this->status_->is_rs_handshake_enabled())
+            if (this->status_ != nullptr)
             {
-                if (this->parent_ != nullptr && this->parent_->connector_ != nullptr)
+                auto *holder = this->status_->get_holder();
+                if (holder != nullptr)
                 {
-                    this->parent_->connector_->send_write_request(
-                        WR3223Commands::RS, "1",
-                        [this, write_ls](char *answer, bool success)
-                        {
-                            ESP_LOGD(TAG, "RS handshake for LS write success=%d answer=%s", success, answer ? answer : "<null>");
-                            if (success)
-                                write_ls();
-                        });
-                    return;
+                    holder->setVentilationLevel(level);
+                    this->status_->write_status();
                 }
             }
 
-            write_ls();
+            this->publish_state(value);
         }
 
         void WR3223VentilationLevelSelect::on_status(WR3223StatusValueHolder *holder)

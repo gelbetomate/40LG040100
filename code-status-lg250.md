@@ -169,15 +169,17 @@ Beispiel:
 
 ### 7.3 Schreib-Telegramm (nur wenn enable_unsafe_writes: true)
 
-Read-Write-Anforderung vom PC:
+Schreibtelegramm:
 
-EOT ADR ADR ADR ADR CMD1 CMD2 DATA... ETX
+EOT ADR ADR ADR ADR STX CMD1 CMD2 DATA... ETX CHK
 
-Beispiel `LS=3`:
+Die aktuelle Lüftungsstufen-Auswahl schreibt nicht direkt `LS`. Sie setzt das interne Statusbyte und schreibt dieses über `SW`, wie in der ursprünglichen WR3223-Komponente.
 
-`04 30 30 31 31 4C 53 33 03`
+Beispielhafter Write-Frame für `SW`:
 
-Die Steuerung quittiert die Schreibanforderung mit einem einzelnen ACK oder NAK. Die Checksumme gehoert zu den Antworttelegrammen der Steuerung; sie wird nicht an die Schreibanforderung angehaengt. Dieses Format ist aus der externen WR3223-Protokollbeschreibung abgeleitet und muss auf der LG250 noch verifiziert werden.
+`04 30 30 31 31 02 53 57 DATA 03 CHK`
+
+`CHK` ist XOR über `SW`, die Daten und `ETX`. Die Steuerung quittiert die Schreibanforderung mit einem einzelnen ACK oder NAK.
 
 ## 8) Vergleich zu Modbus
 
