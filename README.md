@@ -211,7 +211,7 @@ For the tested Pichler LG250 interface, the following behavior is confirmed:
 | `Rd` | Read only | Room-temperature setpoint can be read, but `Rd` writes receive `NAK` |
 | `SW`, `RS` | Not confirmed for this interface | Writes receive `NAK`; do not enable the RS/PC-control handshake by default |
 
-`L1`/`L2`/`L3` change the configured setpoints and do not immediately select the active ventilation level. The active level remains observable through `LS`. The Home Assistant controls for current level and operation mode are therefore read-only on this tested interface.
+`L1`/`L2`/`L3` change the configured setpoints and do not immediately select the active ventilation level. On the tested LG250, writes receive `ACK` but the current operating condition repeatedly reads the previous `L3` value back, so only a matching readback is treated as confirmed. The active level remains observable through `LS`. The Home Assistant displays for current level and operation mode are therefore read-only on this tested interface.
 
 ## Validation Focus
 

@@ -477,36 +477,6 @@ select:
           - "Winterbetrieb"
           - "Handbetrieb Winterbetrieb"
 
-  - platform: template
-    name: "LG250 Aktuelle Lueftungsstufe (LS bestaetigt)"
-    icon: "mdi:fan"
-    optimistic: false
-    update_interval: 30s
-    options:
-      - "Aus"
-      - "Luftstufe 1"
-      - "Luftstufe 2"
-      - "Luftstufe 3"
-      - "Automatik / Grundlüftung"
-      - "Unbekannt"
-    lambda: |-
-      std::string raw = id(lg250_ls_raw).state;
-      char *end = nullptr;
-      long level = std::strtol(raw.c_str(), &end, 10);
-      if (raw.empty() || end == raw.c_str() || *end != '\0' || level < 0 || level > 4) {
-        return {"Unbekannt"};
-      }
-      if (level == 0) return {"Aus"};
-      if (level == 1) return {"Luftstufe 1"};
-      if (level == 2) return {"Luftstufe 2"};
-      if (level == 3) return {"Luftstufe 3"};
-      return {"Automatik / Grundlüftung"};
-    set_action:
-      - logger.log:
-          level: WARN
-          format: "LG250 LS ist auf dieser Schnittstelle lesbar; Auswahl '%s' nicht schreibbar."
-          args: ["x.c_str()"]
-
 number:
   - platform: 40lg040100
     numbers:

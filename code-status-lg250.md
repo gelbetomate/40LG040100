@@ -162,7 +162,7 @@ Der erste Feldtest mit der neuen Konfiguration war erfolgreich:
 - Home Assistant veroeffentlichte anschliessend `LG250 Luftstufe 1 Sollwert = 21`.
 - `LS` blieb unveraendert bei `4`; der Write aendert also den Sollwert, nicht die aktuell aktive Betriebsstufe.
 
-Ein zweiter Feldtest bestaetigte den Bereich auch fuer einen hohen Wert: `L3=82` wurde mit `ACK` (`0x06`) bestaetigt. Der gesendete Frame war `04 30 30 31 31 02 4C 33 38 32 03 76`; der Write wurde zunaechst in Home Assistant veroeffentlicht. Ein spaeterer Test mit `L3=80` zeigte jedoch, dass ein `ACK` allein keine dauerhafte Uebernahme beweist: Der anschliessende Readback lieferte wieder `L3=68`. Die Number-Komponente liest deshalb nach `ACK` das Register erneut und veroeffentlicht nur den bestaetigten Readback-Wert.
+Ein zweiter Feldtest bestaetigte den Telegrammweg auch fuer einen hohen Wert: `L3=82` wurde mit `ACK` (`0x06`) bestaetigt. Weitere Tests mit `L3=80`, `L3=79` und `L3=92` erhielten ebenfalls `ACK`, aber der anschliessende Readback lieferte jeweils wieder `L3=68`. Der Controller bestaetigt damit den Transport beziehungsweise die Gueltigkeit des Telegramms, uebernimmt den neuen L3-Sollwert auf dieser Betriebsart aber nicht dauerhaft. Die Number-Komponente liest deshalb nach `ACK` das Register erneut und veroeffentlicht nur den bestaetigten Readback-Wert `68`.
 
 Ein anschliessender Schreibtest mit `Rd=23` wurde mit `NAK` abgelehnt. Das schliesst den Lesepfad nicht aus: `Rd` kann auf dieser Anlage gelesen werden, ist aber nicht als schreibbarer Befehl bestaetigt. Ein Readback von `154` wird im LG250-YAML vorlaeufig mit `0.1` multipliziert und als `15.4 degC` angezeigt, weil der Rohwert sonst als unmoegliche `154 degC` erscheinen wuerde. Diese Skalierung muss noch gegen den am Bedienteil angezeigten Sollwert verifiziert werden. `Rd` bleibt ein schreibgeschuetzter Sensor und wird nicht als Number angeboten. `L1`, `L2` und `L3` bleiben als durch `ACK` bestaetigte Schreibpfade aktiv.
 
@@ -241,7 +241,7 @@ Ein Readback `??????.` bedeutet nur: Der aktuelle Leseversuch hat keinen numeris
 
 `L1`, `L2` und `L3` sind Sollwerte der drei Luftstufen. Ein erfolgreicher Write wie `L3=82` aendert nicht die aktuell laufende Stufe. `LS=4` bleibt deshalb korrekt als `Automatik / Grundlueftung` sichtbar, solange die Anlage selbst in der Grundlueftung laeuft.
 
-Die bisherige Anzeige `AUS` war dagegen ein UI-Fehler: Sie wurde aus dem internen `SW`-Holder abgeleitet, dessen Readback auf dieser Firmware ungueltig ist und deshalb auf dem Defaultwert 0 blieb. Die Produktiv-YAML verwendet dafuer jetzt eine Template-Auswahl, die ausschliesslich das bestaetigte `LS`-Readback auswertet. Der Betriebsmodus wird nicht mehr als `AUS` aus einem unbestaetigten `MD`-Holder dargestellt.
+Die bisherige Anzeige `AUS` war dagegen ein UI-Fehler: Sie wurde aus dem internen `SW`-Holder abgeleitet, dessen Readback auf dieser Firmware ungueltig ist und deshalb auf dem Defaultwert 0 blieb. Die zwischenzeitliche Template-Auswahl war ebenfalls falsch modelliert, weil sie als interaktiver Select eine Auswahl zuliess. Die Produktiv-YAML verwendet fuer den bestaetigten `LS`-Zustand jetzt ausschliesslich den Textsensor `LG250 Betriebsstatus Detail`; der Betriebsmodus wird nicht als `AUS` aus einem unbestaetigten `MD`-Holder dargestellt.
 
 ## 1.3 Display-Menues und Zielabbildung in Home Assistant
 
