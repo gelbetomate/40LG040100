@@ -43,7 +43,7 @@ Die Klartextdiagnose darf deshalb Bit 16 nicht als "Automatik aktiv" ausgeben. `
 
 ## 1.2 Schreibverhalten
 
-Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` und `enable_rs_handshake: false` durchgefuehrt. Die Auswahl erreicht den Schreibpfad, aber die Steuerung antwortet auf `LS`, `MD` und `SW` mit `NAK`. Die Hermes-PDF beschreibt `SW` zwar als nur bei PC-Steuerung verwendbar; ob `RS=1` auf der Pichler-LG250 diese Freigabe aktiviert, ist noch nicht durch einen Feldtest bestaetigt.
+Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` durchgefuehrt. Die Auswahl erreicht den Schreibpfad, aber die Steuerung antwortete bisher auf `LS`, `MD` und `SW` mit `NAK`. Fuer den naechsten kontrollierten Feldtest ist `enable_rs_handshake: true` aktiviert; damit wird vor einem SW-Schreibzugriff einmal `RS=1` gesendet. Ob dieser Handshake auf der Pichler-LG250 die erwartete Freigabe aktiviert, muss der RL-Readback zeigen.
 
 Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden anschliessend aus den Komponenten entfernt. Manuelle Schreibaktionen bleiben grundsaetzlich aktiv. Nach dem Neustart waren keine wiederkehrenden automatischen `SW=0`- oder `MD=0`-Schreibversuche mehr im Log sichtbar.
 
@@ -134,7 +134,7 @@ Die PDF beschreibt `SW` explizit als:
 
 > SW - Status schreib byte auslesen/schreiben **(nur bei PC Steuerung)**
 
-Das ist eine plausible Erklaerung fuer das `NAK` bei SW-Schreibzugriffen, aber noch kein Nachweis fuer die konkrete Pichler-LG250-Firmware. Dafuer existiert im Connector ein optionaler RS-Handshake-Pfad (`send_write_request RS=1` vor dem SW-Write). Er bleibt in der Produktiv-YAML vorerst deaktiviert, bis ein kontrollierter Feldtest bestaetigt, dass `RS=1` den RL-Zustand `Bedienung ueber RS Schnittstelle` setzt und anschliessende SW-/MD-Schreibzugriffe akzeptiert werden.
+Das ist eine plausible Erklaerung fuer das `NAK` bei SW-Schreibzugriffen, aber noch kein Nachweis fuer die konkrete Pichler-LG250-Firmware. Der kontrollierte Test muss zeigen, ob `RS=1` den RL-Zustand `Bedienung ueber RS Schnittstelle` setzt und anschliessende SW-/MD-Schreibzugriffe akzeptiert. Vor dem Test war `RL=6`; bei Erfolg waere als Hinweis ein gesetztes Bit 128 zu erwarten, also beispielsweise `RL=134`.
 
 #### RL - vollstaendige offizielle Bitmaske
 

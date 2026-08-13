@@ -89,7 +89,7 @@ uart:
   uart_id: uart_bus
   restore_attempts: 5
   enable_unsafe_writes: true
-  enable_rs_handshake: false
+  enable_rs_handshake: true
 
 sensor:
   - platform: 40lg040100
