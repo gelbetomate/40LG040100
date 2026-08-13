@@ -68,9 +68,8 @@ namespace esphome
                     [this](char *resp, bool ok)
                     {
                         ESP_LOGD(TAG, "Mode readback: %s success=%d", resp, ok);
-                        if (ok)
+                        if (ok && holder_->set_mode_status(resp))
                         {
-                            holder_->set_mode_status(resp);
                             notify_controls();
                         }
                     });
@@ -90,9 +89,8 @@ namespace esphome
                             [this](char *resp, bool ok)
                             {
                                 ESP_LOGD(TAG, "Mode readback: %s success=%d", resp, ok);
-                                if (ok)
+                                if (ok && holder_->set_mode_status(resp))
                                 {
-                                    holder_->set_mode_status(resp);
                                     notify_controls();
                                 }
                             });

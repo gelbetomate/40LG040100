@@ -87,9 +87,8 @@ namespace esphome
                 [this](char *resp, bool ok)
                 {
                     ESP_LOGD(TAG, "Status readback: %s success=%d", resp, ok);
-                    if (ok)
+                    if (ok && holder_->setSWStatus(resp))
                     {
-                        holder_->setSWStatus(resp);
                         notify_controls();
                     }
                 });

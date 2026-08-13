@@ -40,7 +40,6 @@ namespace esphome
                 }
             }
 
-            this->publish_state(value);
         }
 
         void WR3223ModeSelect::on_mode(WR3223ModeValueHolder *holder)

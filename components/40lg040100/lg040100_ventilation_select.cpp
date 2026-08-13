@@ -57,7 +57,6 @@ namespace esphome
                 }
             }
 
-            this->publish_state(value);
         }
 
         void WR3223VentilationLevelSelect::on_status(WR3223StatusValueHolder *holder)

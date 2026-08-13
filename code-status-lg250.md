@@ -51,6 +51,8 @@ Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden an
 
 Antworten wie `??????.` koennen formal als gueltige Antworttelegramme ankommen, sind aber kein numerischer Status. Sie duerfen deshalb nicht als `0` uebernommen werden. Die Value-Holder pruefen Readbacks jetzt strikt numerisch; bei einem ungueltigen `SW`- oder `MD`-Readback bleibt der bisherige interne Zustand erhalten.
 
+Selects veroeffentlichen einen neuen Wert erst nach bestaetigtem Write. Bei `NAK` oder ungueltigem Readback bleibt in Home Assistant der zuletzt bestaetigte Anlagenzustand sichtbar.
+
 ## 1.3 Display-Menues und Zielabbildung in Home Assistant
 
 Die Screenshots zeigen ein BDE-Comfort-Bedienteil. Die Menues lassen sich fuer Home Assistant in folgende Funktionsgruppen ordnen:
