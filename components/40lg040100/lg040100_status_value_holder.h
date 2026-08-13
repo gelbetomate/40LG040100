@@ -3,6 +3,7 @@
 #include "esphome/core/log.h"
 #include "esphome/core/preferences.h"
 #include "lg040100_helper.h"
+#include <cstdlib>
 
 namespace esphome
 {
@@ -144,8 +145,14 @@ namespace esphome
         if (read == nullptr)
           return false;
 
-        int value = WR3223Helper::to_int(read, true);
-        ESP_LOGD("VALUEHOLDER", "setSWStaus: %d", value);
+        char *end = nullptr;
+        long value = std::strtol(read, &end, 10);
+        if (end == read || *end != '\0')
+        {
+          ESP_LOGW("VALUEHOLDER", "Ungueltiges SW-Readback: '%s'", read);
+          return false;
+        }
+        ESP_LOGD("VALUEHOLDER", "setSWStaus: %ld", value);
         stateValueSW = value & WR3223EnumStatusSW::STATUS_MASK_SW;
         ESP_LOGD("VALUEHOLDER", "setSWStaus (masked): %d", stateValueSW);
         return true;

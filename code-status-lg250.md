@@ -47,6 +47,10 @@ Manuelle Schreibtests wurden mit `enable_unsafe_writes: true` und `enable_rs_han
 
 Die automatischen Startup-/Polling-Schreibvorgaenge fuer `SW` und `MD` wurden anschliessend aus den Komponenten entfernt. Manuelle Schreibaktionen bleiben grundsaetzlich aktiv. Nach dem Neustart waren keine wiederkehrenden automatischen `SW=0`- oder `MD=0`-Schreibversuche mehr im Log sichtbar.
 
+### Readback nach NAK
+
+Antworten wie `??????.` koennen formal als gueltige Antworttelegramme ankommen, sind aber kein numerischer Status. Sie duerfen deshalb nicht als `0` uebernommen werden. Die Value-Holder pruefen Readbacks jetzt strikt numerisch; bei einem ungueltigen `SW`- oder `MD`-Readback bleibt der bisherige interne Zustand erhalten.
+
 ## 2) Zusatzcodes getestet, auf deiner Anlage nicht unterstuetzt
 
 | Code | Erwartete Bedeutung | Intervall im Test | Ergebnis im Log | Status | Empfehlung |

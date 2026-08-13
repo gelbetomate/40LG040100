@@ -2,6 +2,7 @@
 
 #include "esphome/core/preferences.h"
 #include "lg040100_helper.h"
+#include <cstdlib>
 
 namespace esphome
 {
@@ -44,7 +45,10 @@ namespace esphome
             {
                 if (read == nullptr)
                     return false;
-                int value = WR3223Helper::to_int(read, true);
+                char *end = nullptr;
+                long value = std::strtol(read, &end, 10);
+                if (end == read || *end != '\0')
+                    return false;
                 mode_value_ = value & WR3223EnumModus::STATUS_MASK;
                 return true;
             }
