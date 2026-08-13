@@ -23,12 +23,7 @@ namespace esphome
 
         void WR3223ModeComponent::update()
         {
-            if (controls_.empty())
-                return;
-
-            // mit den regulaeren Updates warten wir bis das Startup abgeschlossen wurde
-            if (parent_->is_startup_completed())
-                write_mode();
+            // Betriebsarten werden nur durch eine explizite Benutzeraktion geschrieben.
         }
 
         void WR3223ModeComponent::on_startup()
@@ -36,11 +31,10 @@ namespace esphome
             if (controls_.empty())
                 return;
 
-            if (holder_ != nullptr && !parent_->is_bedienteil_aktiv())
+            if (holder_ != nullptr)
             {
                 holder_->restore_state();
                 notify_controls();
-                write_mode();
             }
         }
 

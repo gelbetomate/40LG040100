@@ -324,8 +324,8 @@ text_sensor:
       std::string raw_st = id(lg250_st_sensor).state;
       int val = atoi(raw_st.c_str());
       std::string result = "";
-      if (val & 4)   result += "Bypass OFFEN (Sommermodus) | ";
-      if (val & 16)  result += "Automatik aktiv | ";
+      if (val & 4)   result += "Betriebsart-Bit 4 aktiv | ";
+      if (val & 16)  result += "Status-Bit 16 aktiv | ";
       if (val & 32)  result += "Lüfter EIN | ";
       if (val & 8)   result += "STÖRUNG! | ";
       if (result == "") return {"Anlage im Standby"};

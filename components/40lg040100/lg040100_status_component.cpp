@@ -23,12 +23,7 @@ namespace esphome
 
         void WR3223StatusComponent::update()
         {
-            if (controls_.empty())
-                return;
-
-            // mit den regulaeren Updates warten wir bis das Startup abgeschlossen wurde
-            if (parent_->is_startup_completed())
-                write_status();
+            // Statuswerte werden nur durch eine explizite Benutzeraktion geschrieben.
         }
 
         void WR3223StatusComponent::on_startup()
@@ -36,10 +31,10 @@ namespace esphome
             if (controls_.empty())
                 return;
 
-            if (holder_ != nullptr && !parent_->is_bedienteil_aktiv())
+            if (holder_ != nullptr)
             {
-                holder_->restore_state_sw();                
-                write_status();                
+                holder_->restore_state_sw();
+                notify_controls();
             }
         }
 
