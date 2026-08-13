@@ -9,10 +9,10 @@ Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
 |---|---|---|---|---|---|---|---|
 | T1 | Verdampfertemperatur | degC | 30s | 28.8 bis 29.0 | funktioniert | plausibel und stabil | aktiv lassen |
 | T2 | Kondensatortemperatur | degC | 30s | 26.9 | funktioniert | plausibel und stabil | aktiv lassen |
-| T3 | Aussentemperatur | degC | 30s | 26.0 | funktioniert | plausibel und stabil | aktiv lassen |
-| T4 | Ablufttemperatur Raum | degC | 30s | 26.9 bis 27.0 | funktioniert | plausibel und stabil | aktiv lassen |
-| T5 | Nach Waermetauscher Fortluft | degC | 30s | 0.0 | funktioniert | numerisch gueltig, fachlich anlagenseitig pruefen | aktiv lassen, Verlauf beobachten |
-| NA | Drehzahl Abluft | rpm | 30s | ca. 1007 bis 1171 | funktioniert | plausibel, dynamisch zur Stufe passend | aktiv lassen |
+| T3 | Aussentemperatur (Aussenluft) | degC | 30s | 26.0 | funktioniert | plausibel und stabil | aktiv lassen |
+| T4 | Ablufttemperatur Raum (Abluft) | degC | 30s | 26.9 bis 27.0 | funktioniert | plausibel und stabil | aktiv lassen |
+| T5 | Nach Waermetauscher Fortluft (Fortluft) | degC | 30s | 0.0 | funktioniert | numerisch gueltig, fachlich anlagenseitig pruefen | aktiv lassen, Verlauf beobachten |
+| NA | Drehzahl Abluft/Fortluftseite | rpm | 30s | ca. 1007 bis 1171 | funktioniert | plausibel, dynamisch zur Stufe passend | aktiv lassen |
 | NZ | Drehzahl Zuluft | rpm | 30s | ca. 1245 bis 1261 | funktioniert | plausibel, dynamisch zur Stufe passend | aktiv lassen |
 | UA | Steuerspannung Abluft | V | 60s | 31.0 | funktioniert | plausibel und stabil | aktiv lassen |
 | UZ | Steuerspannung Zuluft | V | 60s | 35.0 | funktioniert | plausibel und stabil | aktiv lassen |
@@ -22,6 +22,7 @@ Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
 | L2 | Luftstufe 2 Sollwert | % | 2min | 33 | funktioniert | plausibel | aktiv lassen |
 | L3 | Luftstufe 3 Sollwert | % | 2min | 68 | funktioniert | plausibel | aktiv lassen |
 | ER | Fehlercode Leistungsteil Rohwert | Code | 60s | 0 | funktioniert | gueltig, kein Fehler aktiv | aktiv lassen |
+| Rd | Raum-Solltemperatur Anzeige | degC | 2min | am Bedienteil eingestellter Wert | funktioniert lesend | Schreibtest `Rd=23` erhielt NAK | als Anzeige aktiv lassen |
 
 ## 1.1 Feldtest Betriebsarten und Statusregister
 
@@ -36,6 +37,8 @@ Die Betriebsarten und Lueftungsstufen wurden am Bedienteil veraendert und anschl
 | manuell und automatisch | `ST` enthaelt Bit 16 | Bit 16 bedeutet nicht automatisch "Automatik aktiv" |
 | Wechsel zwischen `ST=48` und `ST=52` | Differenz ist Bit 4 | Bit 4 ist wahrscheinlich betriebsartabhaengig, fachliche Bezeichnung noch offen |
 | Fehlerabfrage in allen Testzustaenden | `ER=0` | kein Fehler im Fehlerregister |
+
+Der Feldtest `RL=6` setzt die Masken `2` und `4`. Nach der Hermes-RL-Tabelle entspricht das den Relais fuer Zusatzheizung und Erdwaermetauscher. Diese beiden Diagnosen sind deshalb in der produktiven YAML jetzt sichtbar; zuvor waren sie vorsichtshalber deaktiviert.
 
 Die Werte `48` und `52` entsprechen `0b00110000` beziehungsweise `0b00110100`. Der einzige Unterschied ist Bit 4. Die Testfolge spricht dafuer, dass dieses Bit mit Sommer-/Winterbetrieb zusammenhaengt; das ist noch nicht unabhaengig bestaetigt. Bit 8 wurde in der Testreihe nicht beobachtet.
 
@@ -126,7 +129,7 @@ Die Schnittstellen-PDF bestaetigt die Registernamen und liefert erstmals offizie
 
 Alle bisher verwendeten Register sind durch die PDF bestaetigt: `AE`, `AA`, `Az`, `Aa`, `AR`, `AZ`, `AP`, `AN`, `AV`, `T1`-`T8`, `LS`, `L1`-`L3`, `LD`, `Ld`, `EC`, `Es`, `ES`, `EW`, `EE`, `EA`, `ER`, `ST`, `SW`, `RL`, `UZ`, `UA`, `NZ`, `NA`, `NM`, `MD`, `CN`, `KM`, `ZH`, `ZE`, `WP`, `PA`, `II`, `rT`.
 
-Die Register `MO`, `BY`, `HP`, `HZ` sind in der PDF nicht aufgefuehrt. Das erklaert, warum diese Befehle auf der LG250 `??????.` zurueckliefern.
+Die Register `MO`, `BY`, `HP`, `HZ` sind in dieser PDF nicht aufgefuehrt. Das ist ein Hinweis auf eine abweichende Variante, beweist aber weder fehlende Lesbarkeit noch fehlende Schreibbarkeit auf der LG250. Antworten `??????.` werden deshalb als ungueltiger Readback dokumentiert; Schreibbarkeit muss separat mit einem passenden Datenformat und `ACK`/`NAK` getestet werden.
 
 #### Schreibrechte laut WP-Schnittstellen-PDF
 
@@ -138,7 +141,7 @@ Die neu hinzugefuegte WP-Schnittstellen-PDF beschreibt dasselbe Telegrammformat,
 - `L1`, `L2`, `L3` und `LD` sind **lesbar und schreibbar**.
 - `SW` und `RS` kommen in dieser Tabelle nicht vor.
 
-Das erklaert die bisherigen Feldtests: `LS`, `MD`, `SW` und `RS` mit `NAK` sind kein Beleg fuer ein falsches Telegramm, sondern passen zu den dokumentierten Schreibrechten dieser Variante. Die bisherige `SW`-/RS-Handshake-Annahme wird fuer diese LG250-Schnittstelle verworfen.
+Das erklaert die bisherigen Feldtests: `LS`, `MD`, `SW` und `RS` mit `NAK` sind kein Beleg fuer ein falsches Telegramm, sondern passen zu den dokumentierten Schreibrechten dieser Variante. Die bisherige `SW`-/RS-Handshake-Annahme wird fuer diese LG250-Schnittstelle verworfen. Das gilt nicht als allgemeiner Beweis, dass ein Register mit `??????.` niemals schreibbar ist.
 
 Die PDF dokumentiert als Schreibbeispiel `L1=50`:
 
@@ -227,6 +230,16 @@ Dieser Befehl ist nur fuer Servicezwecke relevant und nicht in der produktiven Y
 #### ST - noch ohne offizielle Bitdefinition
 
 Die PDF beschreibt `ST` nur als „Status auslesen" ohne Bitaufschluesselung. Die empirisch ermittelten Werte `ST=48` (0b00110000) und `ST=52` (0b00110100) bleiben vorlaeufig mit neutralen Labels. Die Bitdefinitionen aus einer Hermes-/WR3223-Dokumentation duerfen nicht automatisch der Pichler-LG250 zugeordnet werden.
+
+### 1.2.4 Regel fuer ungueltige Readbacks
+
+Ein Readback `??????.` bedeutet nur: Der aktuelle Leseversuch hat keinen numerisch verwertbaren Wert geliefert. Es bedeutet nicht automatisch, dass das Register nicht schreibbar ist. Fuer jeden moeglichen Write muessen Registerbeschreibung, Datenformat, Wertebereich und die echte Antwort (`ACK` oder `NAK`) separat bewertet werden. Bis dahin bleiben solche Befehle Testkandidaten und werden nicht produktiv als schreibbare Bedienelemente angeboten.
+
+### 1.2.5 Aktueller Betriebsstatus und Setpoints
+
+`L1`, `L2` und `L3` sind Sollwerte der drei Luftstufen. Ein erfolgreicher Write wie `L3=82` aendert nicht die aktuell laufende Stufe. `LS=4` bleibt deshalb korrekt als `Automatik / Grundlueftung` sichtbar, solange die Anlage selbst in der Grundlueftung laeuft.
+
+Die bisherige Anzeige `AUS` war dagegen ein UI-Fehler: Sie wurde aus dem internen `SW`-Holder abgeleitet, dessen Readback auf dieser Firmware ungueltig ist und deshalb auf dem Defaultwert 0 blieb. Die Produktiv-YAML verwendet dafuer jetzt eine Template-Auswahl, die ausschliesslich das bestaetigte `LS`-Readback auswertet. Der Betriebsmodus wird nicht mehr als `AUS` aus einem unbestaetigten `MD`-Holder dargestellt.
 
 ## 1.3 Display-Menues und Zielabbildung in Home Assistant
 
