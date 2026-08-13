@@ -197,6 +197,14 @@ sensor:
         accuracy_decimals: 0
         update_interval: 2min
 
+      - command: "Rd"
+        name: "LG250 Raum-Solltemperatur (Anzeige)"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 2min
+
       - command: "V1"
         name: "LG250 V1 Zuluftventilator Status (Test)"
         unit_of_measurement: "rpm"
@@ -465,25 +473,19 @@ number:
     numbers:
       vent_level_1_speed:
         name: "LG250 Luftstufe 1 Sollwert"
-        min_value: 3
-        max_value: 40
+        min_value: 0
+        max_value: 100
         step: 1
       vent_level_2_speed:
         name: "LG250 Luftstufe 2 Sollwert"
-        min_value: 4
-        max_value: 40
+        min_value: 0
+        max_value: 100
         step: 1
       vent_level_3_speed:
         name: "LG250 Luftstufe 3 Sollwert"
-        min_value: 3
-        max_value: 40
+        min_value: 0
+        max_value: 100
         step: 1
-      room_target:
-        name: "LG250 Raum-Solltemperatur"
-        min_value: 10
-        max_value: 30
-        step: 1
-
   - platform: template
     name: "LG250 Betriebsstunden vom Display eintragen"
     icon: "mdi:counter"
