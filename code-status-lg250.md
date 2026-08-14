@@ -42,6 +42,8 @@ Die Betriebsarten und Lueftungsstufen wurden am Bedienteil veraendert und anschl
 
 Ein weiterer Feldtest bestaetigt den Zustandswechsel im Lesepfad: Die Anlage meldete zunaechst `LS=4` mit `Automatik - Grundlueftung` und spaeter `LS=2` mit `Manuell - Stufe 2`. Dazu wurden etwa `NZ=1246` beziehungsweise `NZ=917` und `NA=975` beobachtet. Die LS-basierte Statusableitung folgt damit dem realen Anlagenzustand und nicht einem optimistischen HA-Wunschwert.
 
+`LD` ist laut Hermes-WP-Schnittstellenbeschreibung ein les-/schreibbarer Zuluft-Korrekturwert (Zuluft +/-). Der generische Component-Pfad ist vorhanden; fuer die LG250 wird er jetzt als Number `LG250 Zuluft-Korrektur (LD)` mit `-40..40 %` aktiviert. Auch hier gilt: Ein Write ist erst nach passendem Readback bestaetigt.
+
 Der Feldtest `RL=6` setzt die Masken `2` und `4`. Nach der Hermes-RL-Tabelle entspricht das den Relais fuer Zusatzheizung und Erdwaermetauscher. Diese beiden Diagnosen sind deshalb in der produktiven YAML jetzt sichtbar; zuvor waren sie vorsichtshalber deaktiviert.
 
 Die Werte `48` und `52` entsprechen `0b00110000` beziehungsweise `0b00110100`. Der einzige Unterschied ist Bit 4. Die Testfolge spricht dafuer, dass dieses Bit mit Sommer-/Winterbetrieb zusammenhaengt; das ist noch nicht unabhaengig bestaetigt. Bit 8 wurde in der Testreihe nicht beobachtet.
