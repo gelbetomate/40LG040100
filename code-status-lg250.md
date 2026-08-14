@@ -570,3 +570,20 @@ Diese Methode kann bestätigen, welcher Anlagenzustand durch das Display gesetzt
 ### 10.4 Architekturgrenze
 
 Die C++-Komponente bleibt für Transport, Framing, Parsing, Checksummen und generische Read-/Write-Requests modellneutral. LG250-spezifische Registerauswahl, Skalierung, Luftwegbezeichnungen, Statusableitungen und Schreibrechte bleiben in YAML beziehungsweise Modellprofilen. Erkenntnisse aus der LG250 dürfen nicht ohne Feldtest als allgemeine LG150-/LG350-Semantik übernommen werden.
+
+### 10.5 Vergleich mit Schwörer WGT / WR3223
+
+Die Projekte `kaepse/schwoerer-wgt-wr3223` und `schmurgel-tg/esphome-components` verwenden ebenfalls einen Hermes-WR3223-Controller und dasselbe BDE-Konzept. Daraus ergeben sich folgende prüfbare Vergleichshypothesen:
+
+- Die Lüftungsstufen-Sollwerte `L1`, `L2` und `L3` werden dort ebenfalls als Prozentwerte behandelt. Das bestätigt die Darstellung der LG250-Number-Entities als Prozentwerte, beweist aber nicht den zulässigen Wertebereich dieser konkreten LG250.
+- Beim Schwörer-WGT wird ein regelmäßiges `SW`-Status-/Freigabekommando beschrieben. Ohne diese Kommunikation kann der Controller nach ungefähr 20 Sekunden in einen eingeschränkten Defaultzustand wechseln. Zusätzlich werden gespeicherte Statuswerte erst geschrieben, wenn das Bedienteil nicht aktiv ist.
+- Die fremde Komponente bietet explizite Save-/Restore-Aktionen. Das ist ein Hinweis auf eine mögliche Folge- oder Speicheraktion, aber kein Nachweis, dass die LG250 dieselben Befehle oder dieselbe Reihenfolge verwendet.
+
+Für die LG250 darf daraus derzeit nur folgender Test abgeleitet werden:
+
+1. BDE angeschlossen lassen und am Display `LS=2` einstellen.
+2. Einen einzelnen Write auf `L2` ausführen, zum Beispiel von `33` auf `40`, und ACK sowie anschließenden Readback protokollieren.
+3. Danach `LS`, `L2`, `NA/NZ`, `UA/UZ`, `ST`, `RL` und `ER` vergleichen. Ein unveränderter `L2`-Readback bleibt ein fehlgeschlagener Funktionstest, auch wenn der Write ACK erhält.
+4. Erst wenn ein wirksamer L2-Write nachgewiesen ist, eine mögliche Speicher-/Folgeaktion untersuchen.
+
+Die Schwörer-Sequenz wird nicht automatisch aktiviert: Auf der getesteten LG250 erhielt `RS=1` ein `NAK`, und ein `SW`-Readback ist ungültig. Außerdem zeigte der LG250-Test mit abgestecktem Display `LS=0`, `RL=0` und abgeschaltete Ausgänge statt des im Schwörer-Projekt beschriebenen eingeschränkten Betriebs. Das Fremdverhalten ist daher eine nützliche Vergleichshypothese, aber keine übertragene LG250-Funktion.

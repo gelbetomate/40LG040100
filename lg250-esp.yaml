@@ -482,17 +482,17 @@ number:
   - platform: 40lg040100
     numbers:
       vent_level_1_speed:
-        name: "LG250 Luftstufe 1 Sollwert"
+        name: "LG250 L1-S1 Sollwert Lueftungsstufe 1 (%)"
         min_value: 0
         max_value: 100
         step: 1
       vent_level_2_speed:
-        name: "LG250 Luftstufe 2 Sollwert"
+        name: "LG250 L2-S2 Sollwert Lueftungsstufe 2 (%)"
         min_value: 0
         max_value: 100
         step: 1
       vent_level_3_speed:
-        name: "LG250 Luftstufe 3 Sollwert"
+        name: "LG250 L3-S3 Sollwert Lueftungsstufe 3 (%)"
         min_value: 0
         max_value: 100
         step: 1
