@@ -489,13 +489,15 @@ Schreibtelegramm:
 
 EOT ADR ADR ADR ADR STX CMD1 CMD2 DATA... ETX CHK
 
-Die aktuelle Lüftungsstufen-Auswahl schreibt nicht direkt `LS`. Sie setzt das interne Statusbyte und schreibt dieses über `SW`, wie in der ursprünglichen WR3223-Komponente.
+Die produktive LG250-YAML verwendet keine schreibende Lüftungsstufen-Auswahl. `LS` ist auf der getesteten PC-Schnittstelle ein Readback der aktuell durch das BDE gesetzten Stufe. Die frühere SW-basierte Auswahl ist deaktiviert, weil `SW`-Readback und `RS`-Handshake auf dieser LG250 nicht funktionieren.
 
-Beispielhafter Write-Frame für `SW`:
+Die getesteten Sollwert-Writes für `L1`, `L2` und `L3` werden zwar mit `ACK` quittiert, bleiben aber nach dem Readback bei den alten Werten (`L1=20`, `L2=33`, `L3=68`). Ein `ACK` allein ist deshalb keine Bestätigung der funktionalen Übernahme.
 
-`04 30 30 31 31 02 53 57 DATA 03 CHK`
+Beispielhafter Write-Frame für einen dokumentierten `L1`-Write:
 
-`CHK` ist XOR über `SW`, die Daten und `ETX`. Die Steuerung quittiert die Schreibanforderung mit einem einzelnen ACK oder NAK.
+`04 30 30 31 31 02 4C 31 DATA 03 CHK`
+
+`CHK` ist XOR über Kommando, Daten und `ETX`. Die Steuerung quittiert die Schreibanforderung mit einem einzelnen ACK oder NAK; die Komponente liest danach das Register erneut und veröffentlicht nur den Readback-Wert.
 
 ## 8) Vergleich zu Modbus
 
@@ -531,3 +533,37 @@ AE, AA, Az, Aa, AR, AZ, AP, AN, AV, T1, T2, T3, T4, T5, T6, T7, T8, LS, L1, L2, 
 - keine Dauerantwort ??????.
 - numerische Plausibilitaet oder stabiler Textstatus
 - wenn unklar: als "fraglich" markieren statt produktiv aktivieren
+
+## 10) Display-/PC-Schnittstellen und Gesamtfahrplan
+
+Das BDE-Comfort-Display hängt an einer separaten RS485-Schnittstelle. Dieses Projekt verwendet ausschließlich die PC-Parametrierungsschnittstelle über RS232 mit dem Hermes-Zweizeichenprotokoll. Ein RS485-Sniffer ist daher nicht zwingend erforderlich: Displayänderungen können über die resultierenden RS232-Readbacks korreliert werden.
+
+### 10.1 Bereits bestätigte Verhaltensdaten
+
+- `LS=4` wird als `Automatik - Grundlüftung` erkannt.
+- Eine Displayänderung kann `LS=4` auf `LS=2` ändern; die Statusanzeige meldet danach `Manuell - Stufe 2`.
+- `Rd` ist lesbar und liefert LG250-Rohwerte wie `134..156`; im LG250-YAML werden sie vorläufig mit `0.1` als `13.4..15.6 degC` dargestellt.
+- `ER=0`, `ST=48`, `RL=6`, `NA/NZ`, `UA/UZ`, `F1/F2` und die Luftwegtemperaturen liefern verwertbare Readbacks.
+- `L1/L2/L3` erhalten bei Writes `ACK`, aber der anschließende Readback bleibt bei `20/33/68`. Diese Writes sind daher derzeit funktional nicht bestätigt.
+
+### 10.2 Was für vollständige HA-Steuerung fehlt
+
+1. Eine wirksame PC-RS232-Sequenz für die aktuelle Luftstufe und Betriebsmodi.
+2. Die Freigabe-, Speicher- oder Folgeaktion, die nach einem formal quittierten Write möglicherweise noch erforderlich ist.
+3. Ein belastbarer PC-Schreibpfad für Raum-Sollwert `Rd`.
+4. Sommer-/Winterbetrieb, Aus, Automatik und manuelle Stufen als reproduzierbare Steueraktionen.
+5. Zeitprogramme für Sommer/Winter einschließlich Aktivierung und Speicherung.
+6. Filter-Restzeit und Filter-Reset.
+7. Fehlerhistorie mit Datum/Uhrzeit und Fehlertexten.
+8. Echte Betriebsstundenregister für Stufen, Grundlüftung, Gesamtbetrieb, Vorheizung, EWT und Bypass.
+9. Servicefunktionen wie Neustart und geschützte Parameter.
+
+### 10.3 Methodik ohne RS485-Sniffer
+
+Für jede einzelne BDE-Aktion werden vor und nach der Änderung über RS232 die folgenden Werte verglichen: `LS`, `ST`, `RL`, `Rd`, `L1-L3`, `NA`, `NZ`, `UA`, `UZ` und `ER`. Dazu werden Bedienaktion, Uhrzeit, sichtbarer Vorher-/Nachher-Zustand und die Readback-Änderungen dokumentiert.
+
+Diese Methode kann bestätigen, welcher Anlagenzustand durch das Display gesetzt wurde und ob ein PC-Kommando denselben Zustand reproduziert. Sie kann nicht den ursprünglichen RS485-Schreibframe oder eine interne BDE-Speichersequenz rekonstruieren. Für eine produktive Schreibfunktion sind deshalb sowohl ein reproduzierbarer PC-Write als auch ein passender Readback erforderlich.
+
+### 10.4 Architekturgrenze
+
+Die C++-Komponente bleibt für Transport, Framing, Parsing, Checksummen und generische Read-/Write-Requests modellneutral. LG250-spezifische Registerauswahl, Skalierung, Luftwegbezeichnungen, Statusableitungen und Schreibrechte bleiben in YAML beziehungsweise Modellprofilen. Erkenntnisse aus der LG250 dürfen nicht ohne Feldtest als allgemeine LG150-/LG350-Semantik übernommen werden.
