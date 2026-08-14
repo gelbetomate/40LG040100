@@ -398,6 +398,7 @@ text_sensor:
       if (level == 1) return {"Manuell - Stufe 1"};
       if (level == 2) return {"Manuell - Stufe 2"};
       if (level == 3) return {"Manuell - Stufe 3"};
+      if (level == 0) return {"Anlage Aus / Standby"};
 
       // Automatik: Bei Level 4 echte Drehzahl auswerten.
       if (level == 4) {

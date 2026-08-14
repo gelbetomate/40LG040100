@@ -547,6 +547,7 @@ Das BDE-Comfort-Display hängt an einer separaten RS485-Schnittstelle. Dieses Pr
 - `Rd` ist lesbar und liefert LG250-Rohwerte wie `134..156`; im LG250-YAML werden sie vorläufig mit `0.1` als `13.4..15.6 degC` dargestellt.
 - `ER=0`, `ST=48`, `RL=6`, `NA/NZ`, `UA/UZ`, `F1/F2` und die Luftwegtemperaturen liefern verwertbare Readbacks.
 - `L1/L2/L3` erhalten bei Writes `ACK`, aber der anschließende Readback bleibt bei `20/33/68`. Diese Writes sind daher derzeit funktional nicht bestätigt.
+- Beim Feldtest am 14.08.2026 mit abgestecktem BDE-Display wechselte die Anlage in einen Aus-/Sicherheitszustand: `LS=0`, `NA=0`, `NZ=0`, `UA=0`, `UZ=0`, `RL=0`, `ST=16` und `ER=0`. Das zeigt, dass die Displayverbindung für den normalen Betrieb relevant sein kann oder dass der Controller bei fehlendem BDE-Bus die Ausgaenge abschaltet. Es beweist noch keine PC-Schreibsperre.
 
 ### 10.2 Was für vollständige HA-Steuerung fehlt
 
