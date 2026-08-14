@@ -205,13 +205,13 @@ For the tested Pichler LG250 interface, the following behavior is confirmed:
 |---|---|---|
 | `LS` | Read | Current ventilation level; `4` represents base ventilation on the tested unit |
 | `MD` | Read | Operation mode readback is not available on the tested firmware |
-| `L1` | Read/Write | Per-level setpoint; write receives `ACK`, then requires matching readback |
-| `L2` | Read/Write | Per-level setpoint; write path available, matching readback still pending |
-| `L3` | Read/Write | Per-level setpoint; write receives `ACK`, then requires matching readback |
+| `L1` | Read/Write | Write receives `ACK`, but current readback remains `20` after test write `33` |
+| `L2` | Read/Write | Write receives `ACK`, but current readback remains `33` after test write `44` |
+| `L3` | Read/Write | Write receives `ACK`, but current readback remains `68` after multiple test writes |
 | `Rd` | Read only | Room-temperature setpoint can be read, but `Rd` writes receive `NAK` |
 | `SW`, `RS` | Not confirmed for this interface | Writes receive `NAK`; do not enable the RS/PC-control handshake by default |
 
-`L1`/`L2`/`L3` change the configured setpoints and do not immediately select the active ventilation level. On the tested LG250, writes receive `ACK` but the current operating condition repeatedly reads the previous `L3` value back, so only a matching readback is treated as confirmed. The active level remains observable through `LS`. The Home Assistant displays for current level and operation mode are therefore read-only on this tested interface.
+`L1`/`L2`/`L3` are readable setpoint registers. On the tested LG250, write frames receive `ACK`, but test writes to all three registers are followed by the previous values on readback (`L1=20`, `L2=33`, `L3=68`). The component therefore treats the readback, not the `ACK` alone, as confirmation. The active level remains observable through `LS`. The Home Assistant displays for current level and operation mode are read-only on this tested interface.
 
 ## Validation Focus
 
@@ -316,7 +316,7 @@ Still smurgels pictures, need to update this with mine
 ![Configuration](images/wr3223_konfiguration.png)
 ![Diagnostics](images/wr3223_diagnose.png)
 
-Wiring example:
+Wiring example from Smurgel:
 
-![Wiring example](https://github.com/schmurgel-tg/esphome/blob/main/images/20230101_174032.jpg)
+![Wiring example](images/20230101_174032.jpg)
 
