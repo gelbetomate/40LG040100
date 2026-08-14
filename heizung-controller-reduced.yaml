@@ -54,7 +54,7 @@ sensor:
     sensors_custom:
       # Laut Log valide und numerisch
       - command: "T1"
-        name: "LG250 T1 Verdampfertemperatur"
+        name: "LG250 T1 Fortlufttemperatur (Fortluft FO)"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -62,7 +62,7 @@ sensor:
         update_interval: 30s
 
       - command: "T2"
-        name: "LG250 T2 Kondensatortemperatur"
+        name: "LG250 T2 Zulufttemperatur (Zuluft ZU)"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement

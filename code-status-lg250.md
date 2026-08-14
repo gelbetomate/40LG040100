@@ -9,8 +9,8 @@ Diese Datei beschreibt die Feldtests der konkreten LG250-Anlage. Sie ist kein al
 
 | Code | Funktion | Einheit | Intervall | Beobachtete Werte | Status | Plausibilitaet | Empfehlung |
 |---|---|---|---|---|---|---|---|
-| T1 | Verdampfertemperatur | degC | 30s | 28.8 bis 29.0 | funktioniert | plausibel und stabil | aktiv lassen |
-| T2 | Kondensatortemperatur | degC | 30s | 26.9 | funktioniert | plausibel und stabil | aktiv lassen |
+| T1 | Fortlufttemperatur (Fortluft FO) | degC | 30s | 28.8 bis 29.0 | funktioniert | plausibel im KWL-Luftschema, durch Zewotherm-Unterlage gestuetzt | aktiv lassen |
+| T2 | Zulufttemperatur (Zuluft ZU) | degC | 30s | 26.9 | funktioniert | plausibel im KWL-Luftschema, durch Zewotherm-Unterlage gestuetzt | aktiv lassen |
 | T3 | Aussentemperatur (Aussenluft) | degC | 30s | 26.0 | funktioniert | plausibel und stabil | aktiv lassen |
 | T4 | Ablufttemperatur Raum (Abluft) | degC | 30s | 26.9 bis 27.0 | funktioniert | plausibel und stabil | aktiv lassen |
 | T5 | Nach Waermetauscher Fortluft (Fortluft) | degC | 30s | 0.0 | funktioniert | numerisch gueltig, fachlich anlagenseitig pruefen | aktiv lassen, Verlauf beobachten |
@@ -24,7 +24,7 @@ Diese Datei beschreibt die Feldtests der konkreten LG250-Anlage. Sie ist kein al
 | L2 | Luftstufe 2 Sollwert | % | 2min | 33 | funktioniert | plausibel | aktiv lassen |
 | L3 | Luftstufe 3 Sollwert | % | 2min | 68 | funktioniert | plausibel | aktiv lassen |
 | ER | Fehlercode Leistungsteil Rohwert | Code | 60s | 0 | funktioniert | gueltig, kein Fehler aktiv | aktiv lassen |
-| Rd | Raum-Solltemperatur Anzeige | degC | 2min | Rohwert `154`, vorlaeufig als `15.4 degC` skaliert | funktioniert lesend | Schreibtest `Rd=23` erhielt NAK; Skalierung am Bedienteil gegenpruefen | als Anzeige aktiv lassen |
+| Rd | Raum-Solltemperatur Anzeige | degC | 2min | Rohwerte `134..156`, vorlaeufig als `13.4..15.6 degC` skaliert | funktioniert lesend | Schreibtest `Rd=23` erhielt NAK; Skalierung am Bedienteil gegenpruefen | als Anzeige aktiv lassen |
 
 ## 1.1 Feldtest Betriebsarten und Statusregister
 
@@ -39,6 +39,8 @@ Die Betriebsarten und Lueftungsstufen wurden am Bedienteil veraendert und anschl
 | manuell und automatisch | `ST` enthaelt Bit 16 | Bit 16 bedeutet nicht automatisch "Automatik aktiv" |
 | Wechsel zwischen `ST=48` und `ST=52` | Differenz ist Bit 4 | Bit 4 ist wahrscheinlich betriebsartabhaengig, fachliche Bezeichnung noch offen |
 | Fehlerabfrage in allen Testzustaenden | `ER=0` | kein Fehler im Fehlerregister |
+
+Ein weiterer Feldtest bestaetigt den Zustandswechsel im Lesepfad: Die Anlage meldete zunaechst `LS=4` mit `Automatik - Grundlueftung` und spaeter `LS=2` mit `Manuell - Stufe 2`. Dazu wurden etwa `NZ=1246` beziehungsweise `NZ=917` und `NA=975` beobachtet. Die LS-basierte Statusableitung folgt damit dem realen Anlagenzustand und nicht einem optimistischen HA-Wunschwert.
 
 Der Feldtest `RL=6` setzt die Masken `2` und `4`. Nach der Hermes-RL-Tabelle entspricht das den Relais fuer Zusatzheizung und Erdwaermetauscher. Diese beiden Diagnosen sind deshalb in der produktiven YAML jetzt sichtbar; zuvor waren sie vorsichtshalber deaktiviert.
 
@@ -195,7 +197,7 @@ Die Bitmaske in `binary_sensor.py` stimmt vollstaendig mit der PDF ueberein; das
 | 0x81 | 129 | Drehzahldifferenz (delta_n_error) |
 | 0x80 | 128 | Zuluftventilator / n500error |
 | 0x84 | 132 | Abluftventilator |
-| 0x82 | 130 | Kondensatorfehler |
+| 0x82 | 130 | Geraetefehler, genaue Bedeutung fuer LG250 offen |
 | 0x04 | 4 | HD-Fehler |
 | 0x85 | 133 | Vorheizregister-Fehler |
 | 0x3y | 49-56 | Unterbrechung Sensor y (y=1 T1, y=2 T2, y=3 T3, y=5 T5, y=6 T6, y=7 EWT, y=8 VHR) |
@@ -205,15 +207,17 @@ Der `ER`-Sensor hat jetzt eine Klartextdiagnose (`LG250 ER Fehlerdiagnose`), die
 
 #### Temperatursensoren T1-T6 laut PDF
 
-Die YAML-Sensor-Labels waren falsch benannt. Korrekte Zuordnung laut PDF:
+Die bisher verwendeten T1-/T2-Labels `Verdampfertemperatur` und `Kondensatortemperatur` passen nicht zur LG250-Wohnraumlüftung ohne Kältekreis. Die Zewotherm-LG250-Unterlage beschreibt ein reines KWL-Gerät mit den vier primären Luftströmen Außenluft, Abluft, Zuluft und Fortluft. Zusammen mit den Sommermesswerten stützt sie die Zuordnung `T1=Fortluft (FO)` und `T2=Zuluft (ZU)`.
+
+Die derzeit belastbare Zuordnung lautet:
 
 | Register | Offizielle Bedeutung |
 |---|---|
-| T1 | Verdampfertemperatur Istwert |
-| T2 | Kondensatortemperatur |
+| T1 | Fortlufttemperatur (Fortluft FO) |
+| T2 | Zulufttemperatur (Zuluft ZU) |
 | T3 | Aussentemperatur |
 | T4 | Ablufttemperatur (Raumtemperatur) - nicht in der PDF explizit, aber bestaetigt durch Feldtest |
-| T5 | Temperatur nach Waermetauscher (Fortluft) |
+| T5 | Temperatur nach Waermetauscher, optionaler Fortluft-Zusatzkanal |
 | T6 | Zulufttemperatur - neu aktiviert |
 | T7 | Temperatur nach Solevorwaermung |
 | T8 | Temperatur nach Vorheizregister |
@@ -398,8 +402,8 @@ Hinweis: In HA kann sich die entity_id bei Umbenennungen aendern. Deshalb sind u
 
 | ESP-Code | Sichtbarer Name in HA | Domain | Typische entity_id |
 |---|---|---|---|
-| T1 | LG250 T1 Verdampfertemperatur | sensor | sensor.lg250_t1_verdampfertemperatur |
-| T2 | LG250 T2 Kondensatortemperatur | sensor | sensor.lg250_t2_kondensatortemperatur |
+| T1 | LG250 T1 Fortlufttemperatur | sensor | sensor.lg250_t1_fortlufttemperatur_fortluft_fo |
+| T2 | LG250 T2 Zulufttemperatur | sensor | sensor.lg250_t2_zulufttemperatur_zuluft_zu |
 | T3 | LG250 T3 Aussentemperatur | sensor | sensor.lg250_t3_aussentemperatur |
 | T4 | LG250 T4 Ablufttemperatur Raum | sensor | sensor.lg250_t4_ablufttemperatur_raum |
 | T5 | LG250 T5 Nach Waermetauscher Fortluft | sensor | sensor.lg250_t5_nach_waermetauscher_fortluft |

@@ -95,7 +95,7 @@ sensor:
   - platform: 40lg040100
     sensors_custom:
       - command: "T1"
-        name: "LG250 T1 Verdampfertemperatur"
+        name: "LG250 T1 Fortlufttemperatur (Fortluft FO)"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -103,7 +103,7 @@ sensor:
         update_interval: 30s
 
       - command: "T2"
-        name: "LG250 T2 Kondensatortemperatur"
+        name: "LG250 T2 Zulufttemperatur (Zuluft ZU)"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
@@ -364,10 +364,10 @@ text_sensor:
       if (val == 0x81) return {"STOERUNG: Drehzahldifferenz (delta_n)"};
       if (val == 0x80) return {"STOERUNG: Zuluftventilator / n500"};
       if (val == 0x84) return {"STOERUNG: Abluftventilator"};
-      if (val == 0x82) return {"STOERUNG: Kondensatorfehler"};
+      if (val == 0x82) return {"STOERUNG: Fehlercode 0x82"};
       if (val == 0x04) return {"STOERUNG: HD-Fehler"};
       if (val == 0x85) return {"STOERUNG: Vorheizregister"};
-      static const char* snamen[] = {"?","Verdampfer T1","Kondensator T2","Aussen T3","T4","Fortluft T5","Zuluft T6","EWT T7","VHR T8"};
+      static const char* snamen[] = {"?","Fortluft T1","Zuluft T2","Aussenluft T3","Abluft T4","Fortluft Zusatzkanal T5","Zuluft Zusatzkanal T6","EWT T7","VHR T8"};
       if ((val & 0xF0) == 0x30) {
         int y = val & 0x0F;
         return {"STOERUNG: Unterbrechung " + std::string((y >= 1 && y <= 8) ? snamen[y] : "unbekannt")};
