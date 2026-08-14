@@ -1,7 +1,43 @@
 # LG250 Code-Status (40LG040100)
 
-Stand: 2026-08-13
+Stand: 2026-08-14
 Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
+
+## 0) Geräteidentifikation und elektrische Ausstattung laut Typenschild
+
+Das fotografierte Typenschild gehört zur verwendeten Steuerungsplatine und nennt:
+
+### 0.1 Identifikation
+
+- **Type:** `40LG040100 V. 4.0`. Das ist die Typen- und Versionsbezeichnung der Steuerung. `V. 4.0` wird hier nicht automatisch als separater Firmwarestand interpretiert.
+- **No:** `1409051`. Das ist die individuelle Nummer der Steuerungskomponente.
+
+### 0.2 Spannungsversorgung
+
+- **Power:** `AC 100-240 V, 50/60 Hz, 5 VA`.
+
+Die Angabe beschreibt die Versorgung der Steuerungsplatine selbst. Die größeren Lasten der Lüfter und Heizregister werden nicht durch diese 5-VA-Logikversorgung erklärt, sondern über die auf dem Typenschild genannten Ausgänge beziehungsweise externe Leistungskomponenten geschaltet.
+
+### 0.3 Eingänge
+
+- **In:** `5 x KTY81`.
+
+Die Platine besitzt fünf Eingänge für KTY81-Temperaturfühler. Das passt zu den fünf beobachteten Temperaturregistern `T1` bis `T5`. Die fachliche LG250-Zuordnung aus den Feldtests lautet derzeit `T1=Fortluft`, `T2=Zuluft`, `T3=Aussenluft`, `T4=Abluft` und `T5=Fortluft-Zusatzkanal`; die Typenschildangabe allein definiert nicht, welcher Fühler welchem Hermes-Code entspricht.
+
+### 0.4 Ausgänge
+
+- **Out:** `3 x DC 0...10 V`.
+- **Out:** `AC 230 V, 6 A`.
+
+Die drei 0-10-V-Ausgänge passen zu einer stufenlosen Ansteuerung von EC-Lüftern und weiteren analogen Stellgrößen. Die beobachteten Register `UA` und `UZ` entsprechen den beiden Luftweg-Steuerspannungen. Die konkrete Belegung des dritten 0-10-V-Ausgangs ist anhand des Typenschilds allein nicht bestimmt; Bypassklappe oder externes Heizregister bleiben hierfür Hypothesen.
+
+Der 230-V-Ausgang kann netzgespeiste Komponenten schalten. Welche LG250-Funktion ihn im konkreten Gerät nutzt, muss aus `RL`-Readbacks und der Anlagenverdrahtung abgeleitet werden; das Typenschild beweist keine einzelne Zuordnung zu Bypass, Vorheizregister oder Zusatzheizung.
+
+### 0.5 Sicherheitskennzeichnung
+
+Das Doppelquadrat kennzeichnet Schutzklasse II beziehungsweise Schutzisolierung. Das CE-Zeichen steht für die auf dem Produkt erklärte Konformität mit den einschlägigen europäischen Anforderungen.
+
+Die LG250 ist in dieser Anlage eine reine KWL-/Lüftungsanwendung ohne Verdampfer und ohne Kondensator. Bezeichnungen wie `Verdampfertemperatur` oder `Kondensatortemperatur` sind für diese Anlage daher fachlich falsch und dürfen nicht als LG250-Entity-Namen verwendet werden. Dass die Anlage ohne angeschlossenes Display in einen Standby-/Sicherheitszustand wechselt, stammt aus dem Feldtest und ist keine direkte Aussage des Typenschilds.
 
 ## 1) Aktive Sensor-Codes (Produktiv)
 
@@ -209,7 +245,7 @@ Der `ER`-Sensor hat jetzt eine Klartextdiagnose (`LG250 ER Fehlerdiagnose`), die
 
 #### Temperatursensoren T1-T6 laut PDF
 
-Die bisher verwendeten T1-/T2-Labels `Verdampfertemperatur` und `Kondensatortemperatur` passen nicht zur LG250-Wohnraumlüftung ohne Kältekreis. Die Zewotherm-LG250-Unterlage beschreibt ein reines KWL-Gerät mit den vier primären Luftströmen Außenluft, Abluft, Zuluft und Fortluft. Zusammen mit den Sommermesswerten stützt sie die Zuordnung `T1=Fortluft (FO)` und `T2=Zuluft (ZU)`.
+Die bisher verwendeten T1-/T2-Labels `Verdampfertemperatur` und `Kondensatortemperatur` passen nicht zur LG250-Wohnraumlüftung ohne Kältekreis. Das Typenschild `40LG040100 V. 4.0` und die Zewotherm-LG250-Unterlage stützen die Einordnung als KWL-Gerät mit den vier primären Luftströmen Außenluft, Abluft, Zuluft und Fortluft. Zusammen mit den Sommermesswerten ergibt sich die Zuordnung `T1=Fortluft (FO)` und `T2=Zuluft (ZU)`.
 
 Die derzeit belastbare Zuordnung lautet:
 
@@ -547,6 +583,7 @@ Das BDE-Comfort-Display hängt an einer separaten RS485-Schnittstelle. Dieses Pr
 - `Rd` ist lesbar und liefert LG250-Rohwerte wie `134..156`; im LG250-YAML werden sie vorläufig mit `0.1` als `13.4..15.6 degC` dargestellt.
 - `ER=0`, `ST=48`, `RL=6`, `NA/NZ`, `UA/UZ`, `F1/F2` und die Luftwegtemperaturen liefern verwertbare Readbacks.
 - `L1/L2/L3` erhalten bei Writes `ACK`, aber der anschließende Readback bleibt bei `20/33/68`. Diese Writes sind daher derzeit funktional nicht bestätigt.
+- Kontrollierter Display-angeschlossener Test am 14.08.2026: Bei `LS=2`, `ST=48`, `RL=6`, `UA=3.1 V`, `UZ=3.5 V` und `ER=0` wurde `L2=40` gesendet. Der Controller antwortete mit `ACK`, der unmittelbare Readback blieb jedoch `L2=33`. Damit ist der L2-Schreibframe formal korrekt quittiert, aber auch im aktiven manuellen Betrieb funktional unwirksam.
 - Beim Feldtest am 14.08.2026 mit abgestecktem BDE-Display wechselte die Anlage in einen Aus-/Sicherheitszustand: `LS=0`, `NA=0`, `NZ=0`, `UA=0`, `UZ=0`, `RL=0`, `ST=16` und `ER=0`. Das zeigt, dass die Displayverbindung für den normalen Betrieb relevant sein kann oder dass der Controller bei fehlendem BDE-Bus die Ausgaenge abschaltet. Es beweist noch keine PC-Schreibsperre.
 
 ### 10.2 Was für vollständige HA-Steuerung fehlt
@@ -587,3 +624,24 @@ Für die LG250 darf daraus derzeit nur folgender Test abgeleitet werden:
 4. Erst wenn ein wirksamer L2-Write nachgewiesen ist, eine mögliche Speicher-/Folgeaktion untersuchen.
 
 Die Schwörer-Sequenz wird nicht automatisch aktiviert: Auf der getesteten LG250 erhielt `RS=1` ein `NAK`, und ein `SW`-Readback ist ungültig. Außerdem zeigte der LG250-Test mit abgestecktem Display `LS=0`, `RL=0` und abgeschaltete Ausgänge statt des im Schwörer-Projekt beschriebenen eingeschränkten Betriebs. Das Fremdverhalten ist daher eine nützliche Vergleichshypothese, aber keine übertragene LG250-Funktion.
+
+### 10.6 Herstellernahe WR3223-Erfahrungen: RESETCode und dauerhafte Parameter
+
+Weitere herstellernahe beziehungsweise praxisbasierte WR3223-Dokumentationen liefern eine neue Arbeitshypothese für das bisherige Schreibverhalten:
+
+- In der [openHAB-WR3223-Diskussion](https://community.openhab.org/t/wr3223-ventilation-controller-schworer-haus/11086) wird für Schreibzugriff das Abziehen des Bedienteil-Steckers `X1` beschrieben.
+- Die [Symcon-WR3223-Diskussion](https://community.symcon.de/t/abfragen-und-regeln-der-lueftungssteuerung-wr-3223-von-hermes-electronic/35008) bestätigt die gemeinsame Hermes-WR3223-Protokollfamilie, 9600 Baud, 7 Datenbits, gerade Parität und die ASCII-Steuerzeichenstruktur.
+- In der [Anlagenparameter-Dokumentation](https://hendrich.org/blogs/entscheidungshilfe-luftungsheizung/anlagenparameter/) wird beschrieben, dass vor der Parameteränderung `RESETCode=1` gesetzt werden muss. Die dort gezeigten Tabellen unterscheiden zwischen Messwerten und Parametern und enthalten auch `Luftstufe1`, `Luftstufe2` und `Luftstufe3` als Prozentwerte.
+
+Das passt als Hypothese zu `L2=40 -> ACK -> Readback L2=33`: Der Frame wird auf Transportebene akzeptiert, aber der Parameter wird ohne eine Freigabe-/Schreibschutzsequenz nicht dauerhaft übernommen. Es ist jedoch nicht bewiesen, dass `RESETCode` bei der Pichler-LG250 denselben Hermes-Befehl oder dieselbe Bedeutung hat. Der Name ist in der aktuell bekannten zweistelligen Registerliste dieses Projekts nicht enthalten.
+
+Der Displaybefund schränkt die Übertragung zusätzlich ein: Bei der LG250 führte das Abziehen des BDE zu `LS=0`, `RL=0`, `ST=16` und abgeschalteten Ausgängen. Deshalb darf `X1` nicht erneut als normaler Schreibtest abgezogen werden, solange kein sicherer Wiederanlauf- und Rückfallplan besteht. Das kann eine Watchdog-/Freigabefunktion sein, ist durch die bisherigen Readbacks aber noch nicht als konkrete Firmwareimplementierung bewiesen.
+
+#### Priorisierter Test für RESETCode
+
+1. Die Hermes-/WR3223-Unterlagen und vorhandenen Community-Implementierungen nach einer exakten Register- oder Frame-Zuordnung für `RESETCode` durchsuchen.
+2. Prüfen, ob der Wert als zweistelliges Hermes-Kommando, als Teil eines Parameterframes oder nur über das BDE-Protokoll existiert.
+3. Erst nach bestätigter Zuordnung einen einzelnen, reversiblen Test mit dem bestehenden Readback-Schutz ausführen.
+4. Erfolg nur bei `ACK` plus passendem Readback und anschließend stabiler Wiederholungslesung annehmen.
+
+Bis dahin bleiben `L1`, `L2` und `L3` formal quittierte, aber funktional nicht bestätigte Writes. Die verwandten WR3223-Quellen enthalten außerdem Wärmepumpen-/Kältekreisparameter wie `VerdTemp` und `KondTEMP`; diese gelten nicht als Beleg dafür, dass die konkrete LG250-Anlage einen Verdampfer oder Kondensator besitzt.
