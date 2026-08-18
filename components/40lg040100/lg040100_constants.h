@@ -102,7 +102,7 @@ public:
   // Erdwaermetauscher vorhanden lesen/schreiben
   static constexpr const char *EC = "EC";
 
-  // Schaltpunkt Sommer stopp lesen/schreiben
+  // Sole Stopptemperatur lesen/schreiben
   static constexpr const char *Es = "Es";
 
   // Schaltpunkt Erdwaermetauscher Sommer lesen/schreiben

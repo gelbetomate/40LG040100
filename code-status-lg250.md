@@ -1,7 +1,15 @@
 # LG250 Code-Status (40LG040100)
 
-Stand: 2026-08-14
+Stand: 2026-08-18
 Quelle: aktuelle Nutzkonfiguration, ESPHome-Logs und Feldtest auf deiner Anlage
+
+## Abschlussstand: produktiver LG250-Einsatz nur lesend
+
+Die aktive Konfiguration `lg250-esp.yaml` wurde am 2026-08-18 bewusst auf bestätigte passive Readbacks reduziert. Sie sendet keine Steuer-, Setpoint-, Reset-, Relais-, Save- oder RS-Handshake-Schreibtelegramme. Die vollständige vorherige Testkonfiguration bleibt als `lg250-esp-tested.yaml` erhalten.
+
+Der Hermes-Transport und mehrere Lesewerte sind belastbar, aber kein funktionaler PC-Schreibpfad ist bestätigt: `L1`, `L2` und `L3` erhielten bei Tests zwar `ACK`, lieferten aber stets den unveränderten Readback; `Rd`, `RS`, `SW`, `LS` und `MD` waren abgelehnt oder nicht als schreibbar nutzbar. Ohne passenden Readback und dauerhafte Zustandsänderung zählt kein Write als erfolgreich.
+
+Damit endet die aktive Suche nach einer Schreibfreigabe für diese konkrete LG250-Installation. Weiterarbeit ist willkommen, wenn sie neue überprüfbare Evidenz bringt: aufgezeichnete Telegramme der Pichler-PC-Software oder des Bedienteilbusses, eindeutig identifizierte Adapteranschlüsse, herstellerspezifische Dokumentation oder eine reproduzierbare Sequenz mit persistierendem Readback. Vermutete Reset-, Save-, Watchdog- oder Relaisbefehle werden nicht blind an der Anlage getestet.
 
 ## 0) Geräteidentifikation und elektrische Ausstattung laut Typenschild
 
@@ -11,6 +19,55 @@ Das fotografierte Typenschild gehört zur verwendeten Steuerungsplatine und nenn
 
 - **Type:** `40LG040100 V. 4.0`. Das ist die Typen- und Versionsbezeichnung der Steuerung. `V. 4.0` wird hier nicht automatisch als separater Firmwarestand interpretiert.
 - **No:** `1409051`. Das ist die individuelle Nummer der Steuerungskomponente.
+
+### 0.1.1 Zusatzkennzeichnung des Leistungsteils beziehungsweise DESIGN-Adapters
+
+Das neu bereitgestellte Foto eines Typaufklebers liefert eine weitere Hardwarekennung:
+
+- **Baugruppenbezeichnung:** wahrscheinlich `080DESIGNBOARD` (die letzte Lesung des unscharfen Fotos ist bei `BOARD/BOAD` nicht vollständig sicher).
+- **Version:** `1.2`.
+- **Seriennummer:** `1407524`.
+- **Zusatzangabe Bedienteil:** `12345`.
+
+Die Nummer `1407524` ist damit als individuelle Seriennummer einer weiteren beziehungsweise anders gekennzeichneten Baugruppe dokumentiert. Sie ersetzt nicht die bereits bekannte Seriennummer `1409051` des Typenschilds der Steuerung, sondern muss einer konkreten Platine oder Adapter-/Leistungsteilbaugruppe zugeordnet werden. `Version 1.2` ist eine Baugruppen-/Hardwareversion; daraus wird kein Firmwarestand des Hermes-Controllers abgeleitet.
+
+Die Bezeichnung `080DESIGNBOARD` passt fachlich zum installierten `BT-M1 DESIGN` beziehungsweise zu dessen Leistungsteil-/Bedienteilfamilie und stärkt die Zuordnung des Fotos zur DESIGN-Anlage. Sie beweist allein weder einen Modbus-Transceiver noch eine Hermes-/Modbus-Protokollübersetzung.
+
+Die Angabe `Bedienteil 12345` bleibt vorläufig unklar. In den mitgelieferten BACnet/EDE-Dateien wird `12345` mehrfach als Objektinstanz beziehungsweise Geräte-ID verwendet; es ist daher möglich, dass es sich hier um eine Dokumentations- oder Standardnummer und nicht um die echte Seriennummer des Bedienteils handelt. Für eine sichere Bedienteilidentifikation wären ein schärferes Etikett, die Rückseite des `BT-M1 DESIGN` oder ein Eintrag aus der Pichler-Software erforderlich.
+
+### 0.1.2 Bewertung der Gateway-Hypothese zum `080DESIGNBOARD`
+
+Die vorliegende Gemini-Einschaetzung beschreibt folgende moegliche Architektur:
+
+```text
+BT-M1 DESIGN --(moeglicherweise RS485/Modbus)--> 080DESIGNBOARD
+080DESIGNBOARD --(moeglicherweise Hermes)--> 40LG040100
+```
+
+Diese Architektur ist als Arbeitshypothese interessant, aber aktuell nicht als technische Tatsache bestaetigt. Gesichert ist nur:
+
+- Das konkrete Etikett nennt wahrscheinlich `080DESIGNBOARD`, Version `1.2` und Seriennummer `1407524`.
+- Die LG250-Anleitung beschreibt eine Bedieneinheit beziehungsweise einen Adapter und eine RS485-Verbindung im Bedienteilkontext.
+- Die separate `08KNXGAC_LS_ConfigTool.wz8861` beschreibt ein Weinzierl-Modbus-RTU-Gateway mit `19200`, gerader Paritaet und einem offiziellen numerischen LS-Modbus-Datenmodell.
+- Der beobachtete PC-Anschluss dieser Anlage verwendet dagegen Hermes mit `9600 7E1` und Zweizeichenbefehlen.
+
+Nicht belegt sind derzeit:
+
+- dass das `080DESIGNBOARD` auf seiner Displayseite Modbus RTU spricht;
+- dass diese Modbusseite mit `19200 8N1` arbeitet. Das vorliegende Gateway-Mapping ist `19200 8E1`, nicht `8N1`;
+- dass das DESIGN-Display selbst Modbus und nicht ein Pichler-spezifisches Protokoll verwendet;
+- dass das Board Hermes-Anfragen aktiv in Modbus-Anfragen uebersetzt oder umgekehrt;
+- dass ein permanentes Hermes-Keep-alive oder ein Hardware-Watchdog vom Adapter erzeugt wird;
+- dass Schreibwerte dadurch in ein EEPROM uebernommen werden;
+- dass die Beispielbytes `04 30 30 31 31 02 4C 53 32 ...` ein gueltiges LG250-Hermes-Schreibtelegramm darstellen. Das bekannte Hermes-Schreibformat benoetigt unter anderem `STX`, Daten, `ETX` und eine passende XOR-Pruefsumme; die gezeigte Folge ist dafuer unvollstaendig.
+
+Die KNX-/BACnet-Dateien beweisen den Modbus-Pfad des jeweiligen Gateways. Sie sind kein Mitschnitt der Leitung zwischen `BT-M1 DESIGN`, `080DESIGNBOARD` und Leistungsteil. Auch die Tatsache, dass die Anlage ohne angeschlossenes Display in `LS=0`, `RL=0` und ausgeschaltete Ausgaenge wechselt, beweist noch keinen Watchdog; sie kann ebenso eine BDE-Kommunikations- oder Freigabelogik des Leistungsteils bedeuten.
+
+#### Konsequenz fuer eine Bridge
+
+Ein passives Mithoeren auf der vermuteten Display-/Adapterleitung koennte die Hypothese pruefen, ist aber erst nach Identifikation der konkreten Klemmen und Pegel sinnvoll. Ein RS485-Transceiver darf nicht anhand des `08KNXGAC`-Handbuchs direkt an die Anlage angeschlossen werden: Dessen Klemmenbelegung, Abschlusswiderstand, Baudrate und Paritaet gelten zunaechst nur fuer das Weinzierl-Gateway.
+
+Ein USR-RS485-Gateway oder MAX485 am vermuteten Displaybus darf deshalb nicht einfach mit `19200 8N1` als Modbus-Master aktiv senden. Ein aktiver zweiter Master koennte mit dem vorhandenen Display oder Adapter kollidieren. Der erste sichere Test waere ein hochohmiger passiver Mitschnitt beziehungsweise eine Messung mit galvanisch geeigneter, fuer RS485 vorgesehener Hardware. Erst wenn echte Modbus-Frames mit Slave-Adresse, Function Code und CRC beobachtet wurden, koennen die LS-Modbusadressen fuer diesen Bus verwendet werden.
 
 ### 0.2 Spannungsversorgung
 
@@ -39,6 +96,175 @@ Das Doppelquadrat kennzeichnet Schutzklasse II beziehungsweise Schutzisolierung.
 
 Die LG250 ist in dieser Anlage eine reine KWL-/Lüftungsanwendung ohne Verdampfer und ohne Kondensator. Bezeichnungen wie `Verdampfertemperatur` oder `Kondensatortemperatur` sind für diese Anlage daher fachlich falsch und dürfen nicht als LG250-Entity-Namen verwendet werden. Dass die Anlage ohne angeschlossenes Display in einen Standby-/Sicherheitszustand wechselt, stammt aus dem Feldtest und ist keine direkte Aussage des Typenschilds.
 
+### 0.6 Produktdatenblatt LG 250 System VENTECH und Bedienteilaufbau
+
+Die zusätzlich bereitgestellten Pichler-Datenblattseiten beschreiben das Gerät als kompaktes KWL-Gerät `LG 250, System VENTECH`:
+
+- radiale EC-Energiesparventilatoren mit Konstant-Volumenstromregelung
+- Gegenstrom-Wärmetauscher mit automatischem 100-%-Bypass
+- Luftleistungsbereich etwa `80..250 m3/h` bei externer Druckerhöhung von `50 Pa`
+- Außenluftkassettenfilter F7 und Abluftkassettenfilter G4
+- optionales internes oder externes PTC-Elektroheizregister
+- drei wählbare Bedieneinheiten: `MINI`, `KOMFORT` und `DESIGN`
+- zentrale Bedieneinheit `BT-M1 DESIGN` mit monochromem vollgrafischem TFT, Wochenzeitschaltung, Betriebs-/Laufzeitzählern, MicroSD-Steckplatz und RS485-Schnittstelle zur Konfiguration beziehungsweise zum Auslesen
+- integrierte Filterüberwachung mit zeitgesteuerter Meldung „Filterwechsel“ am Display
+- Filterwechsel ohne Werkzeug möglich
+- automatisch arbeitende Frostschutzschaltung für den Wärmetauscher
+- integrierter 100-%-Bypass zur Umgehung des Wärmetauschers im Sommerbetrieb
+- optionale Nachheizung zur zusätzlichen Anhebung der Raumtemperatur
+
+Für die dokumentierte LG250-Anlage ist das `BT-M1 DESIGN`-Display angeschlossen. Zwischen dem Display und der RS485-Leitung befindet sich zusätzlich ein Pichler-Display-Converter beziehungsweise Bedienteiladapter. Das Datenblatt beschreibt diesen Adapter als Konverter der Kommunikationsschnittstelle des Leistungsteils auf den RS485-Bus der Teilnehmer mit Echtzeituhr und Batteriepufferung.
+
+Die genaue Rolle des konkreten Converters in dieser Installation ist noch offen. Er kann Pegel, galvanische Trennung, Buskopplung, Teilnehmeradressierung oder zusätzliche Zeit-/Bedienteilfunktionen übernehmen. Der Converter ist deshalb für die Interpretation der Display-/RS485-Kommunikation relevant, aber nicht automatisch Teil der hier angeschlossenen PC-Parametrierungsschnittstelle. Unser ESP32 hängt weiterhin an der beobachteten Hermes-PC-Schnittstelle über RS232. Ohne Typenschild, Schaltplan oder Messung an beiden Converter-Seiten darf aus dem Converter keine direkte RESET-, BDE- oder RS-Schreibsequenz abgeleitet werden.
+
+### 0.7 Raumtemperatur und optionaler Elektro-Lufterhitzer
+
+Das zusätzliche Datenblattkapitel „Mit externem Elektrolufterhitzer“ beschreibt eine optionale Ausbaustufe. Für die konkrete Anlage ist festgehalten: Es ist kein externer Elektro-Lufterhitzer vorhanden. Aussagen zu zweistufiger Nachheizung, konstanter Zulufttemperatur von `21 °C`, Schaltstufen und Mindestpausen gehören daher nicht zum aktiven Anlagenaufbau und dürfen nicht als Erklärung für die aktuellen LG250-Readbacks verwendet werden.
+
+Das Datenblatt beschreibt außerdem, dass Sollwert und Erfassung der Raumtemperatur bei den Bedieneinheiten `KOMFORT` und `DESIGN` über einen integrierten Raumtemperaturfühler der Bedieneinheit erfolgen. Das passt zum installierten `BT-M1 DESIGN`: Die am Display angezeigte Raumtemperatur stammt wahrscheinlich vom Display beziehungsweise seinem integrierten Raumfühler und nicht von einem separat identifizierten KTY81-Luftwegfühler der Leistungsteilregister `T1` bis `T5`.
+
+Für die Protokollanalyse müssen deshalb drei Dinge getrennt bleiben:
+
+- Raum-Isttemperatur: wahrscheinlich vom `BT-M1 DESIGN`-Raumfühler geliefert.
+- Raum-Sollwert am Display: fachlich eine Bedienteil-/Komforteinstellung.
+- Hermes-Register `Rd`: auf dieser LG250 bisher nur als Rohwert `134..156` beobachtet; die Zuordnung zum angezeigten Raum-Sollwert ist nicht bestätigt. Die frühere Darstellung `14.6 °C` aus `Rd=146` wurde deshalb entfernt.
+
+### 0.8 Geräteaufbau laut Betriebs- und Montageanleitung
+
+Die bereitgestellte Seite 15 nennt beziehungsweise zeigt folgende Baugruppen des LG250 VENTECH:
+
+- `1a`: Bedieneinheit Typ `DESIGN` beziehungsweise `1`: Bedieneinheit Typ `KOMFORT`
+- `2`: Bedieneinheit Typ `MINI`
+- `3`: Leistungsteil
+- `4`: Verbindungsleitung zur Bedieneinheit, Typ `Y(ST)Y 2 x 2 x 0,64`, geschirmt
+- `5`: Außenluftfilterkassette F7, optional Pollenfilter F9
+- `6`: Abluftfilterkassette G4
+- `7`: Gegenstromwärmetauscher
+- `8`: Kondensatablauf
+- `9`: Frostschutzheizung mit PTC-Niedertemperatur-Vorheizregister, optional
+- `10`: Bypassklappe mit elektromotorischem Stellantrieb
+- `11`: Zuluftventilator
+- `12`: Abluftventilator
+- `13`: Frontdeckel mit Griffschraubverschluss
+- `14`: Luftleitungen beziehungsweise Geräteanschlüsse
+- `15`: Kabeldurchführungen
+
+Für die konkrete Anlage sind daraus insbesondere drei Punkte wichtig: Das optionale PTC-Vorheizregister ist nicht mit einem vorhandenen Elektro-Lufterhitzer gleichzusetzen; der Wärmetauscher und die motorische Bypassklappe gehören dagegen zum dokumentierten VENTECH-Gerätekonzept. Die Abbildung beschreibt den Serienaufbau und beweist nicht allein, welche optionalen Baugruppen in deinem konkreten Gerät bestückt oder elektrisch angeschlossen sind.
+
+### 0.9 Weitere Betriebs- und Montagehinweise aus dem Datenblatt
+
+Die Detailbeschreibung ergänzt folgende Punkte:
+
+- Die Bedieneinheiten `KOMFORT` und `DESIGN` zeigen Betriebszustände und Systemwerte wie Betriebsart, Lüfterstufe, Temperaturen, Filterwechsel und Störungen. Bei `DESIGN` werden diese Informationen im Klartext mit Status- und Störmeldeanzeigen dargestellt.
+- `KOMFORT` und `DESIGN` besitzen einen integrierten Raumtemperaturfühler. Zusätzlich können dort individuelle Einstellungen sowie bei Servicearbeiten Parameter vorgenommen werden.
+- Die Betriebsart kann automatisch nach Zeitprogramm oder manuell gewählt werden. Das bestätigt die fachliche Bedeutung der Displayzustände, ersetzt aber keine bestätigte Hermes-Schreibsequenz für `LS` oder `MD` auf dieser LG250.
+- Das Leistungsteil kann laut Beschreibung über die Bedieneinheit `KOMFORT`, über eine PC-Schnittstelle oder über Kommunikationssoftware bedient werden. Das stützt die getrennte Existenz der PC-Parametrierungsschnittstelle, beweist aber nicht, dass jeder Displayparameter über den aktuellen RS232-Zugang derselben Anlage schreibbar ist.
+- Die Verbindungsleitung zur Bedieneinheit ist laut Montageanleitung nicht im Lieferumfang enthalten. Für die Kommunikation ist eine geschirmte Leitung vom Typ `Y(ST)Y 2x2x0,64` vorgesehen.
+- Der Außenluftfilter ist standardmäßig Klasse `F7`; optional wird ein Pollenfilter Klasse `F9` genannt. Der Abluftfilter ist standardmäßig `G4`, optional wird `F5` genannt. Die frühere Kurzbeschreibung mit F7/G4 bleibt damit korrekt, wird aber um die optionalen Varianten ergänzt.
+- Der Kondensatablauf führt im Wärmetauscher entstehendes Kondenswasser ab und muss über einen wirksamen Geruchsverschluss angeschlossen werden. Das ist ein Anlagen-/Montagehinweis und kein zusätzlicher Kältekreisnachweis.
+- Das optionale PTC-Niedertemperatur-Vorheizregister schützt den Wärmetauscher bei sehr kalten Außentemperaturen vor dem Einfrieren. Ein zusätzlich erwähnter Sole-Registerschutz ist ebenfalls optional; beides darf bei deiner Anlage nicht als vorhanden angenommen werden.
+- Die Bypassklappe umgeht den Wärmetauscher im Sommerbetrieb, wenn die Außentemperatur niedriger als die Raumtemperatur ist. Die konkrete Regelung erfolgt anlagenintern; ein direktes Hermes-Register für diese Bypassentscheidung ist auf deiner LG250 nicht bestätigt.
+
+### 0.10 Detaillierte Funktionshinweise zu den Positionen 11 bis 15
+
+Aus der zusätzlich bereitgestellten Detailseite ergeben sich für den Geräteaufbau folgende textliche Funktionshinweise:
+
+- `11 Zuluftventilator`: stellt den Zuluftvolumenstrom für die Zuluft sicher und versorgt Wohnräume mit aufbereiteter Außenluft.
+- `12 Abluftventilator`: stellt den Abluftvolumenstrom für die Abluft sicher und fördert verbrauchte Luft aus der Wohnung nach außen.
+- `13 Frontdeckel mit Griffschraubverschluss`: dient Wartungsarbeiten; für Revisionszugang wird der Frontdeckel geöffnet, beim Schließen ist auf vollständigen Dichtsitz zwischen Frontdeckel und Gerätegehäuse zu achten.
+- `14 Luftleitungsanschluss`: dient dem Anschluss der Luftleitungssysteme; bei der Montage ist auf die richtige Zuordnung der Leitungen zu Zuluft, Abluft, Außen- und Fortluft zu achten.
+- `15 Kabeldurchführungen`: das Lüftungsgerät ist werkseitig elektrisch verdrahtet; die Kabeldurchführungen werden für den Anschluss der Bedieneinheit und optionaler Systemfühler verwendet.
+
+Diese Hinweise sind für Inbetriebnahme und Plausibilitätsprüfung wichtig (Luftwege, Dichtheit, Verdrahtung), liefern aber keine direkte zusätzliche Registerbelegung für das Hermes-Textprotokoll.
+
+### 0.11 Technische Daten und Bedienungslogik aus der vollständigen LG250-Anleitung
+
+Die zusätzlich bereitgestellten Seiten enthalten die folgenden Herstellerdaten für das Lüftungsgerät `LG 250 System VENTECH`:
+
+#### Gerätespezifikation
+
+- Abmessungen des Lüftungsgeräts: `672 x 867 x 610 mm` (B x H x T).
+- Gehäuse aus verzinktem Stahlblech, beschichtet nach `RAL 9010`, Wärmedämmung etwa `30 mm`.
+- Luftleitungsanschlüsse: `4 x 160 mm`; Kondensatanschluss: `15 mm`.
+- Versorgung: `230 V / 50 Hz`; Schutzart: `IP 20`.
+- Zulässige Gerätetemperatur: `+5 bis +40 °C`; zulässige Außenlufttemperatur: `-15 bis +35 °C`.
+- Gerätegewicht: etwa `60 kg`.
+- Einstellbarer Luftvolumenstrom: `80 bis 250 m3/h` in Schritten von `4 m3/h`.
+- Geräuschangabe: `0,30 W/m3/h` als spezifische Geräuschzahl im Datenblatt.
+- Leistungsaufnahme im Stand-by: `1,6 W`.
+- Gegenstromwärmetauscher aus Kunststoff; Wärmebereitstellungsgrad gemäß PHI: `88 %`.
+- PHI-Benaglichkeitskriterium: `T_ZUL = +18,2 °C` bei `T_AUL = -10 °C`.
+- Gehäusedichtheit gemäß PHI: externe Undichtheit kleiner als `0,6 %` im Druckbereich `50 bis 300 Pa`, interne Undichtheit kleiner als `1,0 %` bezogen auf den mittleren Luftvolumenstrom.
+
+Die werkseitigen Lüfterstufen sind in der Anleitung mit diesen Volumenströmen beschrieben: Stufe I `80 m3/h`, Stufe II `160 m3/h`, Stufe III `250 m3/h`. Die dargestellten Leistungsaufnahmen bei externer Druckerhöhung `50/100 Pa` betragen laut Tabelle ungefähr `24/33 W`, `37/50 W` und `70/91 W` für die drei Stufen. Die Mess- und Kennliniendiagramme gelten laut Anleitung für F7-Zuluft- und G4-Abluftfilter sowie für die Ausführung ohne PTC-Nachheizregister; Filterzustand, Druckverlust und optionale Heizregister beeinflussen die realen Werte.
+
+Die Anleitung beschreibt die drei Betriebsstufen fachlich als Grundlüftung (`80 m3/h`), Normallüftung (`160 m3/h`) und Intensivlüftung (`250 m3/h`). Die Tabelle enthält außerdem empfohlene Luftwechselraten von etwa `0,3/h`, `0,5/h` und `0,8/h`. Diese Angaben sind Soll-/Auslegungswerte und keine Umrechnung der aktuell gelesenen Hermes-Werte `L1` bis `L3`.
+
+#### Bedieneinheiten und konkrete DESIGN-Anlage
+
+Die Anleitung unterscheidet `MINI`, `KOMFORT` und `DESIGN`. Für die konkrete Anlage ist das `BT-M1 DESIGN` relevant. Das DESIGN-Bedienteil besitzt ein vollgrafisches Display, Status-LEDs sowie eine horizontale und vertikale Schiebeleiste. Die horizontale Leiste wählt Menüs beziehungsweise Zeilen; die vertikale Leiste bewegt sich innerhalb eines Menüs. Die Tasten `Zurück` und `Enter` dienen zum Verlassen beziehungsweise Bestätigen.
+
+Die Anleitung beschreibt für DESIGN folgende Anzeige- und Bedienfunktionen:
+
+- Betriebsstatus mit `Betrieb` (grüne LED), `Filterwartung` (gelbe LED) und `Störung` (rote LED).
+- Hauptanzeige mit Uhrzeit, Datum, Luftstufe, Jahreszeit, Raumtemperatur und Betriebsart.
+- Betriebsarten `Manueller Betrieb`, `Automatikbetrieb`, `Grundlüftung` und `Anlage Aus`.
+- Auswahl der Luftstufen 1 bis 3; im Automatikbetrieb wird die Stufe über ein Zeitprogramm bestimmt.
+- Auswahl von `Sommer` und `Winter`. Im Sommerbetrieb wird die Wärmerückgewinnung über die Bypassklappe umgangen; im Winterbetrieb bleibt die Wärmerückgewinnung aktiv.
+- Anzeige und Auswahl der Raum-Solltemperatur. Laut Anleitung ist diese Funktion an eine externe Zusatzheizung gekoppelt; ohne solche Zusatzheizung darf daraus kein aktiver Heizbetrieb der konkreten Anlage abgeleitet werden.
+- Einstellungen für Sommer- und Winter-Zeitprogramme mit Wochentagen, Zeitfenstern und Luftstufen.
+- Systeminformationen wie Softwareversion, aktuelle Luftstufe, Raumtemperatur, Filter-Restlaufzeit und Betriebsstunden.
+- Fehleranzeige mit Fehlernummer, Klartext und Zeitstempel; der Fehlerspeicher kann bis zu fünf Fehler anzeigen.
+
+Die Darstellung `Anlage Aus` im DESIGN-Menü ist damit eine echte dokumentierte Betriebsart. Für die ESPHome-Anzeige bleibt trotzdem die Feldregel bestehen: `Anlage Aus / Standby` wird nur aus einem bestätigten `LS=0` abgeleitet, nicht aus dem unlesbaren oder unbestätigten Register `SW` beziehungsweise `MD`.
+
+#### Zeitprogramme und Sonderfunktionen
+
+Im Automatikbetrieb kann das DESIGN-Bedienteil die Luftstufe nach einem Zeitprogramm umschalten. Die Anleitung beschreibt getrennte Programme für Sommer und Winter, drei Zeitfenster je Wochentag sowie eine Kopierfunktion für weitere Wochentage. Zusätzlich kann eine zeitweise Intensivstufe beziehungsweise eine einstellbare Dauer der Luftstufe 3 aktiviert werden.
+
+Das Service-Hauptmenü ist passwortgeschützt. In der Anleitung ist als Zugangscode `1001` abgebildet. Dort werden unter anderem Filter, Sprache, Temperaturabgleich, Luftvolumenströme, Grundlüftung, Werkseinstellungen und weitere Parameter verwaltet. Dieser Code wird nur als dokumentierter Bedienhinweis aufgenommen und nicht als ESPHome-Service oder automatischer Schreibpfad verwendet.
+
+Die Einstellung `Luftvolumenströme` erlaubt laut Anleitung die Anpassung der Stufen 1 und 2 in Schritten von `4 m3/h`; die werkseitige Stufe 3 beträgt `250 m3/h`. Die Grundlüftung kann aktiviert oder deaktiviert werden. Diese Bedienwerte erklären die fachliche Bedeutung der Sollwerte, beweisen aber keine funktionierende Hermes-Schreibsequenz für `L1`, `L2`, `L3` oder `LS`.
+
+#### Filterüberwachung und Fehlercodes
+
+Die Filter-Restlaufzeit wird am DESIGN-Display angezeigt und kann über `Filter Reset` zurückgesetzt werden. Die Anleitung beschreibt einen zeitgesteuerten Filterwechsel sowie die Anzeige der verbleibenden Laufzeit. Das bestätigt die Wartungsfunktion, identifiziert aber kein Hermes-Register; `FI`, `FH` und `FR` bleiben auf dieser LG250 gemäß Feldtests nicht produktiv nutzbar.
+
+Die Anleitung enthält für das DESIGN-Bedienteil unter anderem folgende Fehlergruppen:
+
+| Gruppe | Dokumentierte Beispiele |
+|---|---|
+| Lüfter 1 | keine Drehzahl, Lüfter fährt nicht an, Überdrehzahl |
+| Kommunikation 2 | Verbindung unterbrochen, keine Antwort eines Teilnehmers, Kommunikation Adapter/Leistungsteil |
+| Messung 3 | Sensoreingang kurzgeschlossen oder offen |
+| System 4 | Speicherfehler, interner Bus gestört, Systemfehler Leistungsteil |
+| Extern 5 | externer Fehlereingang ausgelöst |
+| Leistungsteil 6 | Frostmeldung, EWT-Fehler |
+
+Die separate Fehlernummerntabelle nennt außerdem konkrete Sensorfehler für offene beziehungsweise kurzgeschlossene Eingänge sowie Lüfter- und Kommunikationsfehler. Für die aktuelle ESPHome-Integration bleibt `ER=0` die einzige auf der Anlage wiederholt bestätigte Aussage „kein Fehler“. Ein historischer DESIGN-Fehlerspeicher mit Datum und Uhrzeit ist dadurch noch nicht erschlossen.
+
+#### Optionale bedarfsgerechte Lüftung
+
+Die Anleitung beschreibt optionale bedarfsgerechte Lüftung über einen CO2-Sensor, einen Feuchtesensor oder eine kombinierte CO2-/Feuchtesensorik. Bis zu vier Sensoren können angezeigt werden; die Luftstufe wird anhand des höchsten Messwerts ausgewählt. Umschaltschwellen können für CO2 in `ppm` und für relative Feuchte in `% rH` eingestellt werden.
+
+Diese Funktion ist für die konkrete Anlage nur als Option dokumentiert. Ein vorhandener CO2- oder Feuchtesensor sowie eine dafür passende Hermes-Registerbelegung sind bisher nicht nachgewiesen. Deshalb werden keine virtuellen CO2-/Feuchtewerte und keine Bedarfslüftungssteuerung in die Produktiv-YAML aufgenommen.
+
+#### Temperaturfühler, Zusatzheizung und Verdrahtung
+
+Die Verdrahtungsseite präzisiert die Fühler- und Erweiterungsanschlüsse: `T1` bis `T4` sind werkseitig elektrisch verdrahtet. Der Anschluss eines Außentemperaturfühlers an `T5` wird von der Steuerung automatisch erkannt. Weitere externe Systemkomponenten und Erweiterungsfühler sind optional und müssen entsprechend dem elektrischen Anschlussplan verdrahtet werden.
+
+Damit entsteht eine wichtige Dokumentationsabgrenzung: Das Typenschild nennt `5 x KTY81`, während der Verdrahtungsplan T1 bis T4 als werkseitige Fühler und T5 als optional erkannten Außentemperaturfühler beschreibt. Die beobachteten Hermes-Namen und die Luftweg-Zuordnung der konkreten Firmware dürfen deshalb nicht ausschließlich aus der Anzahl der KTY-Eingänge abgeleitet werden. Die bestehende Zuordnung `T1` bis `T5` bleibt als Feldbeobachtung erhalten; die genaue elektrische Bestückung ist am konkreten Gerät zu prüfen.
+
+Die Anleitung zeigt optionale Baugruppen wie PTC-Vorheizregister, Elektro- oder Warmwasser-Nachheizregister, Sole-Erdwärmetauscher/Wärmepumpe, Außenluftklappe und externe Sensoren. Der Schaltplan beweist deren Anschlussmöglichkeiten, aber nicht ihre Bestückung in deiner Anlage. Insbesondere darf aus einem `RL`-Bit kein vorhandenes Heizregister oder EWT geschlossen werden.
+
+Die Verbindung zwischen Bedieneinheit und Leistungsteil erfolgt laut Anleitung über eine geschirmte Leitung `Y(ST)Y 2x2x0,64`, maximal etwa `100 m`. Die PC-Konfiguration verwendet einen separaten Schnittstellenadapter am Leistungsteil; darüber können Messwerte und Einstellungen gelesen, aufgezeichnet und grafisch dargestellt werden. Diese Beschreibung stützt die getrennte PC-Parametrierungsschnittstelle, liefert aber weiterhin keine direkte Hermes-Entsprechung für die DESIGN-Menüaktionen.
+
+#### Inbetriebnahme und sicherheitsrelevante Hinweise
+
+Vor der Inbetriebnahme sollen laut Anleitung alle Luftleitungen, Ein- und Auslassventile, Filter, der Kondensatanschluss, die elektrische Verdrahtung, die Bedieneinheit sowie optionale Komponenten geprüft werden. Werkseitige Einstellungen sollen nur durch Fachpersonal verändert werden. Arbeiten an Netzanschluss und elektrischen Komponenten sind Elektrofachkräften vorbehalten.
+
+Für das Reverse Engineering folgt daraus: Bedienänderungen am DESIGN-Display sind gute Vorher-/Nachher-Trigger für die Beobachtung des PC-/Hermes-Lesepfads. Sie sind aber kein Beweis, dass dieselbe Funktion über die aktuelle RS232-Schnittstelle schreibbar ist. Jede spätere Schreibimplementierung braucht weiterhin gültiges Telegramm, `ACK`, passenden Readback und eine dauerhafte Zustandsänderung.
+
 ## 1) Aktive Sensor-Codes (Produktiv)
 
 Diese Datei beschreibt die Feldtests der konkreten LG250-Anlage. Sie ist kein allgemeines Registerprofil fuer LG150, LG350 oder andere 40LG040100-Firmwarestaende. Generische Transport- und Parsinglogik bleibt im Component; Auswahl, Benennung, Skalierung und fachliche Ableitungen werden modellbezogen in YAML beziehungsweise Profilen festgelegt.
@@ -60,7 +286,7 @@ Diese Datei beschreibt die Feldtests der konkreten LG250-Anlage. Sie ist kein al
 | L2 | Luftstufe 2 Sollwert | % | 2min | 33 | funktioniert | plausibel | aktiv lassen |
 | L3 | Luftstufe 3 Sollwert | % | 2min | 68 | funktioniert | plausibel | aktiv lassen |
 | ER | Fehlercode Leistungsteil Rohwert | Code | 60s | 0 | funktioniert | gueltig, kein Fehler aktiv | aktiv lassen |
-| Rd | Raum-Solltemperatur Anzeige | degC | 2min | Rohwerte `134..156`, vorlaeufig als `13.4..15.6 degC` skaliert | funktioniert lesend | Schreibtest `Rd=23` erhielt NAK; Skalierung am Bedienteil gegenpruefen | als Anzeige aktiv lassen |
+| Rd | Bedeutung auf dieser LG250 unbestätigt | Rohwert | 2min | Rohwerte `134..156` | funktioniert lesend | BDE zeigte etwa `20.5 degC`, während `Rd=146` bisher fälschlich als `14.6 degC` dargestellt wurde; Schreibtest `Rd=23` erhielt NAK | nur als Diagnose-Rohwert anzeigen |
 
 ## 1.1 Feldtest Betriebsarten und Statusregister
 
@@ -124,6 +350,199 @@ Relevante offizielle Modbus-Adressen:
 Wichtig fuer dieses Projekt: Diese Adressen sind Modbus-Adressen und keine neuen Befehle fuer das aktuell implementierte Hermes-/WR3223-Textprotokoll (`LS`, `ST`, `SW`, `MD` usw.). Die offiziellen Modbus-Datapoints sind zudem laut Liste lesbar; Schreibzugriffe sind nur fuer die Setpoints dokumentiert. Deshalb erklaert die Liste die bisherigen `NAK`-Antworten auf `SW` und `MD` nicht direkt und darf nicht ohne einen Modbus-Funktionscode-Adapter in die bestehende YAML-Komponente uebersetzt werden.
 
 Die offizielle Definition bestaetigt jedoch die fachliche Interpretation von `LS=4`: Das entspricht `Grundlueftung`. Sie bestaetigt nicht, dass `ST` die Luftstufe oder einen Automatik-Bitwert enthaelt. Die beobachteten Werte `ST=48` und `ST=52` bleiben daher bis zu einer herstellerspezifischen Bitbeschreibung ein empirisches Rohstatusfeld.
+
+#### 1.2.1.1 KNX-Gateway 08KNXGAC und ETS-Vorlage `LS`
+
+Der neue Hinweis auf Pichlers `08KNXGAC`-KNX-Gateway und die Datei `08KNXGAC_LS_ETS_Vorlage.zip` ist fuer die weitere Recherche relevant. Der Dateiname `LS` ist ein plausibler Hinweis auf die dokumentierte LG150/LG250- beziehungsweise VENTECH-Geraetefamilie. Er ist jedoch allein noch kein Beweis, dass die Vorlage exakt die Firmware `40LG040100 V.4.0` der konkreten Anlage abbildet. Die Vorlage selbst liegt derzeit nicht im Repository vor und wurde hier noch nicht entpackt oder in ETS geprueft.
+
+Das `08KNXGAC` ist laut Bezeichnung und Produktunterlagen ein Gateway zwischen KNX und Modbus RTU. Daraus folgt belastbar:
+
+- Eine `LS`-ETS-Vorlage kann offizielle KNX-Kommunikationsobjekte, Klartexte, Datenlaengen, Skalierungen und moeglicherweise die dahinterliegenden Modbus-Datapoints dokumentieren.
+- Die bereits vorliegende Modbusliste fuer `LG150/LG250A` ist damit eine passende Vergleichsquelle. Besonders relevant sind Luftstufe, Sommer-/Winterbetrieb, Filter-Restzeit, Bypassposition, Fehlerregister und Betriebsstunden.
+- Die KNX-Vorlage kann zeigen, welche Funktionen Pichler offiziell ueber den Modbus-Gateway-Weg anbietet und welche davon lesbar oder schreibbar sind.
+
+Aus der Gateway-Dokumentation folgt aber nicht automatisch:
+
+- dass der konkrete Bedienteiladapter in deiner Anlage Hermes in Modbus RTU uebersetzt;
+- dass das `BT-M1 DESIGN`-Display intern denselben Modbus-Datenpunktweg verwendet wie das KNX-Gateway;
+- dass ein Modbus-Register direkt als Hermes-Zweizeichenbefehl (`LS`, `L2`, `Rd` usw.) adressierbar ist;
+- dass eine in ETS sichtbare Schreibfunktion ueber die aktuelle PC-RS232-Schnittstelle ebenfalls funktioniert.
+
+Die bisherige Feldarchitektur bleibt daher unveraendert: Der ESP32 spricht auf dem beobachteten PC-Anschluss das native Hermes-Protokoll mit `9600 7E1`, ASCII-Zweizeichenbefehlen, `EOT`/`STX`/`ETX` und XOR-Schreibpruefung. Der Modbusweg des KNX-Gateways ist ein separater Protokollpfad, solange kein Schaltplan, kein Gateway-Telegramm oder kein Busmitschnitt die Kopplung nachweist.
+
+#### Auswertungsplan fuer die ETS-Vorlage
+
+Falls die ZIP-Datei beschafft wird, sollte sie zuerst nur lesend als Dokumentationsquelle ausgewertet werden:
+
+1. ZIP entpacken und Dateityp feststellen (`.knxprod`, XML oder ETS-DCA-Dateien); keine Datei in die Anlagensteuerung importieren.
+2. Produktname, Herstellerkennung, Modellfamilie, Firmware-/Applikationsversion und gegebenenfalls Modbus-Slave-ID dokumentieren.
+3. Kommunikationsobjekte und Klartexte exportieren, insbesondere Luftstufe, Stufe-1/2/3-Sollwerte, Sommer/Winter, Bypass, Filter, Fehler und Betriebsstunden.
+4. Bei jedem Objekt Datentyp, Einheit, Wertebereich, Richtung (lesen/schreiben) und Modbus-Adresse getrennt erfassen.
+5. Die Ergebnisse mit `LIST_Modbus_ES1015_FW_LG150AB_LG250A_v2.0.0.xlsx` vergleichen; Widersprueche als Versions- oder Produktfamilienabweichung markieren.
+6. Erst danach pruefen, ob sich ein Modbus-Telegramm oder eine Herstellerbeschreibung auf den konkreten Bedienteiladapter beziehen laesst.
+
+Die ETS-Kommunikationsobjekte sind damit ein Schluessel fuer das offizielle Datenmodell, aber noch nicht automatisch der Schluessel fuer die fehlende Hermes-Schreibsequenz. Fuer jede spaetere Uebertragung in die ESPHome-Komponente gilt weiterhin: Registersemantik, Frameformat, `ACK`, Readback und dauerhafte Zustandsaenderung muessen auf der konkreten LG250 bestaetigt werden. Fuer netzspannungsnahe Relais-, Heizungs- oder Reset-Funktionen bleibt ein passiver Dokumentationsvergleich die einzige zulaessige erste Stufe.
+
+#### 1.2.1.2 Auswertung der entpackten `LS`-ConfigTool-Datei
+
+Die entpackten Dateien liegen jetzt unter `documents/KNX/`. Die wichtigste Datei fuer die Registerauswertung ist `08KNXGAC_LS_ConfigTool.wz8861`. Sie ist eine lesbare JSON-Konfiguration fuer das Weinzierl-Gateway `KNX Modbus RTU Gateway 886.1 secure`, nicht die Firmware der LG250 und nicht der Quellcode des Pichler-Bedienteiladapters.
+
+Die Datei bestaetigt fuer diesen Gateway-Datensatz:
+
+| Gateway-Einstellung | Dokumentierter Wert |
+|---|---|
+| Gateway-Rolle | Modbus-Master, KNX-seitig angebunden |
+| gemeinsame Modbus-Slave-Adresse | `20` |
+| Baudrate | `19200` |
+| Paritaet/Stop | `even`, 1 Stopbit (`8E1`) |
+| Byte-Reihenfolge | MSB first |
+| Registeradressierung | 0-basiert |
+| Lesen | Function `04`, Read Input Registers |
+| Bit-Schreiben | Function `05`, Write Single Coil |
+| Word-Schreiben | Function `06`, Write Single Holding Register |
+
+Die `LS`-Konfiguration enthaelt folgende relevante Datenpunkte. Die Adressen sind Modbus-Adressen dieses Gateway-Mappings und keine Hermes-Codes:
+
+| Beschreibung in der LS-Datei | Richtung | Modbus-Adresse | Datentyp/Funktion |
+|---|---|---:|---|
+| Alarm Lüftungsgerät | Modbus -> KNX | 29 | Bit 0 aus Function 04 |
+| Alarm Reset + Neustart | KNX -> Modbus | 63 | 16-Bit-Wert, bei EIN Wert `3` |
+| Ist Außenlufttemperatur | Modbus -> KNX | 30 | 16-Bit Temperatur, Function 04 |
+| Ist Fortlufttemperatur | Modbus -> KNX | 31 | 16-Bit Temperatur, Function 04 |
+| Ist Ablufttemperatur | Modbus -> KNX | 32 | 16-Bit Temperatur, Function 04 |
+| Ist Zulufttemperatur | Modbus -> KNX | 33 | 16-Bit Temperatur, Function 04 |
+| Ist Zuluftvolumenstrom | Modbus -> KNX | 46 | unsigned 16-Bit, Function 04 |
+| Ist Abluftvolumenstrom | Modbus -> KNX | 47 | unsigned 16-Bit, Function 04 |
+| Ist aktueller Betriebsstatus | Modbus -> KNX | 48 | niederwertiges Byte, Function 04 |
+| Ist aktuelle Lüftungsstufe | Modbus -> KNX | 59 | niederwertiges Byte, Function 04 |
+| Soll Betriebsmode Sommer/Winter | KNX -> Modbus | 1 | niederwertiges Byte |
+| Soll Lüftungsstufe | KNX -> Modbus | 2 | niederwertiges Byte |
+| Parameter Regelungsart Temperatur | KNX -> Modbus | 7 | niederwertiges Byte |
+| Soll Volumenstrom Stufe 1 | KNX -> Modbus | 9 | unsigned 16-Bit |
+| Soll Volumenstrom Stufe 2 | KNX -> Modbus | 10 | unsigned 16-Bit |
+| Soll Volumenstrom Stufe 3 | KNX -> Modbus | 11 | unsigned 16-Bit |
+| Soll Volumenstrom Grundlüftung | KNX -> Modbus | 12 | unsigned 16-Bit |
+| Soll Zulufttemperatur | KNX -> Modbus | 22 | 16-Bit Temperatur |
+| Soll Raumlufttemperatur | KNX -> Modbus | 23 | 16-Bit Temperatur |
+| Soll Ablufttemperatur | KNX -> Modbus | 24 | 16-Bit Temperatur |
+| Ist CO2 Sensor 1/2 | Modbus -> KNX | 89/90 | in der Datei als DPT 9 abgebildet |
+| Freigabe Heizung/Kühlung | KNX -> Modbus | 89/90 | Bit 0 im Word |
+| Ist Ausgang Heiz-/Kühlregister | Modbus -> KNX | 11/12 | 0..1000 Registerwert, DPT 5 |
+| Ist Ausgang Vorheiz-/Kombiregister/Kühlanforderung | Modbus -> KNX | 16/17/18 | Bit 0 aus Function 04 |
+| Ist Betriebsmeldung Lüftung | Modbus -> KNX | 19 | Bit 0 aus Function 04 |
+| Ist Ausgang Bypassklappe | Modbus -> KNX | 20 | Bit 0 aus Function 04 |
+
+Der Kernabgleich mit der vorhandenen Pichler-Modbusliste ist damit deutlich staerker als zuvor: `1` Sommer/Winter, `2` Luftstufe, `48` Betriebsstatus, `59` aktuelle Luftstufe sowie `46/47` Luftvolumenstrom und `89/90` CO2-Datenpunkte passen in das offizielle LS-Datenmodell. Die Konfiguration verwendet dabei 0-basierte Adressen; Angaben aus anderen Modbuslisten muessen deshalb vor einem Vergleich auf dieselbe Adresskonvention gebracht werden.
+
+Es gibt zugleich eine wichtige Modellierungsauffaelligkeit: Die Datei verwendet die Adressen `89` und `90` sowohl fuer `Ist_CO2 Sensor 1/2` als auch fuer die schreibbaren Bits `Para_Freigabe Heizung` und `Para_Freigabe Kühlung`. Das ist in einem Word-Register technisch moeglich, aber die JSON-Datei allein klaert nicht, ob hier unterschiedliche Bit-/Wortansichten desselben Registers, optionale Betriebsvarianten oder eine fehlerhafte/mehrdeutige Gateway-Vorlage vorliegen. Diese Adressen duerfen daher nicht blind als CO2- oder Heizungswerte in Hermes uebersetzt werden.
+
+Die Datei bestaetigt ausserdem nicht, dass die Modbus-Schreibobjekte direkt die bisher getesteten Hermes-Writes `L1`, `L2`, `L3`, `LS` oder `Rd` ausloesen. Im Gegenteil: Das Gateway nutzt numerische Register und Modbus-Funktionscodes, waehrend der aktuelle PC-Anschluss `9600 7E1` und Hermes-Zweizeichenbefehle verwendet. Der naechste sichere Erkenntnisschritt ist deshalb ein passiver Vergleich der entpackten `LS`-Datenpunkte mit den bereits beobachteten Hermes-Readbacks; eine direkte Modbus-Anfrage an den Bedienteiladapter wird ohne bestaetigte Pegel, Busseite und Terminierung nicht durchgefuehrt.
+
+#### 1.2.1.3 BACnet-Gateway-Unterlagen und Modbus-Master-Konfiguration
+
+Die zusaetzlich abgelegten BACnet-Unterlagen unter `documents/Bacnet/` beschreiben einen zweiten Protokollweg:
+
+```text
+BACnet/IP <-> BACnet-/Modbus-Gateway <-> Modbus RTU
+```
+
+Die Datei `documents/Bacnet/ugw/config/modmster1.txt` enthaelt eine konkrete Modbus-Master-Konfiguration mit Slave `20`. Sie verwendet fuer die LS-Datenpunkte dieselben Adressen wie die entpackte KNX-ConfigTool-Datei:
+
+| Funktion | Modbus-Richtung im Master | Adresse |
+|---|---|---:|
+| Außenlufttemperatur | Input lesen | `30` |
+| Fortlufttemperatur | Input lesen | `31` |
+| Ablufttemperatur | Input lesen | `32` |
+| Zulufttemperatur | Input lesen | `33` |
+| Zuluftvolumenstrom | Input lesen | `46` |
+| Abluftvolumenstrom | Input lesen | `47` |
+| Betriebsstatus | Input lesen | `48` |
+| aktuelle Lüftungsstufe | Input lesen | `59` |
+| Freigabe Heizung | Holding schreiben | `89` |
+| Freigabe Kühlung | Holding schreiben | `90` |
+| Volumenstrom Stufe 1 | Holding schreiben | `9` |
+| Volumenstrom Stufe 2 | Holding schreiben | `10` |
+| Volumenstrom Stufe 3 | Holding schreiben | `11` |
+| Volumenstrom Grundlüftung | Holding schreiben | `12` |
+| Soll-Zulufttemperatur | Holding schreiben | `22` |
+| Soll-Raumlufttemperatur | Holding schreiben | `23` |
+| Soll-Ablufttemperatur | Holding schreiben | `24` |
+| Regelungsart Temperatur | Holding schreiben | `7` |
+| Sommer/Winter Sollwert | Holding schreiben | `1` |
+| Soll-Lüftungsstufe | Holding schreiben | `2` |
+
+Der BACnet-Master verwendet fuer die Register `input` und `holding` die ueblichen getrennten Modbus-Bereiche. Diese Konfiguration bestaetigt damit die fachliche und technische Konsistenz des LS-Mappings deutlich staerker als eine reine BACnet-Namensliste. Sie beweist aber weiterhin nur den Modbus-Gateway-Pfad, nicht die Umsetzung auf den nativen Hermes-PC-Anschluss.
+
+Die Datei `documents/Bacnet/ugw/config/bac1.txt` bildet dieselben Werte als BACnet-Objekte ab. Die EDE-Daten nennen unter anderem:
+
+- Analogwerte fuer Außenluft, Fortluft, Abluft und Zuluft mit Grad-Celsius-Einheit;
+- Analogwerte fuer Zuluft- und Abluftvolumenstrom;
+- binäre Zustände fuer Vorheizregister/Solepumpe/EWT-Klappe, Heiz- und Kühlanforderung sowie Bypass;
+- Mehrzustandsobjekte fuer aktuelle Lüftungsstufe und Betriebsstatus;
+- schreibbare BACnet-Objekte fuer Heizungs-/Kühlungsfreigabe, Volumenstrom-Sollwerte, Temperatur-Sollwerte, Regelungsart, Sommer/Winter und Soll-Lüftungsstufe;
+- `Alarm_Reset + Neustart` als schreibbares Objekt, das im Modbus-Mapping auf Register `63` mit dem Wert `3` abgebildet wird.
+
+Die separat abgelegte EDE-Datei `EDE_ES2020_LG350_450_740_1000SK_v1/bacnet_EDE.csv` ist ausdrücklich fuer die Gerätefamilie `LG350/450/740/1000SK` benannt. Ihre BACnet-Objektliste ist deshalb keine direkte LG250-Firmwarequelle. Sie ist nur als Vergleich fuer Pichlers allgemeine Objektstruktur, Zustandsnamen und Gateway-Konventionen zulaessig. Das gilt besonders fuer `Alarm Reset`, Fehlerzustände, Bypass-/WRG-Texte und optionale Heizungs-/EWT-Funktionen.
+
+Die in den BACnet-State-Texts dokumentierten Zustände sind fuer die LG250-Interpretation trotzdem hilfreich, aber noch nicht automatisch verbindlich: aktuelle Lüftungsstufe `Standby`, `Stufe 1`, `Stufe 2`, `Stufe 3`, `Grundlüftung`, `Extern Stopp`, `Fehler`; Betriebsstatus `CPU startup`, `Standby`, `Anlauf`, `Betrieb`, `Nachlauf`, `Standby Powersafe`, `Testmodus`; Jahreszeit `Sommer`/`Winter`. Die konkrete Hermes-Anzeige bleibt an den Feld-Readbacks `LS`, `ST`, `RL` und `ER` zu verifizieren.
+
+#### BACnet-/KNX-Ergebnis fuer das Reverse Engineering
+
+Die jetzt vorhandenen KNX- und BACnet-Dateien bestaetigen gemeinsam ein offizielles Modbus-Datenmodell fuer die `LS`-Konfiguration. Sie liefern belastbare Kandidaten fuer die Bedeutung und Schreibbarkeit der numerischen Modbus-Register `1`, `2`, `7`, `9..12`, `22..24`, `48`, `59` und `63`. Sie liefern jedoch keine direkte Hermes-Uebersetzung und keinen Nachweis, dass der konkrete Pichler-Bedienteiladapter Modbus RTU spricht.
+
+Damit ist der naechste sichere Schritt ein Dokumentenabgleich, kein aktiver Bus-Test: Modbus-Adresse, Registertyp, Skalierung und Richtung aus KNX-/BACnet-Mapping gegen die beobachteten Hermes-Codes und Readbacks stellen. Ein Modbus- oder RS485-Sendeversuch am Bedienteiladapter bleibt gesperrt, bis dessen elektrische Busseite, Baudrate, Paritaet, Teilnehmerrolle und Terminierung eindeutig identifiziert sind.
+
+#### 1.2.1.4 Anschlussbelegung und Terminierung des KNX-Gateways
+
+Die neu bereitgestellte Anschlussseite des `08KNXGAC` beschreibt die Modbus-Klemmen eindeutig:
+
+| Anschluss | Symbol | Funktion |
+|---:|---|---|
+| 1 | `-` | Modbus-Masse, verbunden mit Anschluss 4 |
+| 2 | `A` | Modbus-Datenleitung A(+), verbunden mit Anschluss 5 |
+| 3 | `B` | Modbus-Datenleitung B(-), verbunden mit Anschluss 6 |
+| 4 | `-` | Modbus-Masse, verbunden mit Anschluss 1 |
+| 5 | `A` | Modbus-Datenleitung A(+), verbunden mit Anschluss 2 |
+| 6 | `B` | Modbus-Datenleitung B(-), verbunden mit Anschluss 3 |
+| KNX `+` | `+` | positiver KNX-Busanschluss |
+| KNX `-` | `-` | negativer KNX-Busanschluss |
+
+Die Anschlüsse `1..3` und `4..6` sind zwei durchverbundene Modbus-Anschlusspaare für die Busweiterführung. Sie sind keine zwei getrennten Modbus-Kanäle. Der Modbus-Strang soll am jeweils letzten Empfänger mit einem Widerstand von `120 Ohm / 0,25 W` zwischen den beiden Signalleitungen abgeschlossen werden. Im Gateway selbst ist laut Anleitung kein Abschlusswiderstand eingebaut; der Widerstand muss extern an der oberen oder unteren Klemmenleiste gesetzt werden.
+
+Diese Angaben gelten für das Weinzierl- beziehungsweise `08KNXGAC`-Gateway. Sie beweisen nicht, dass der Pichler-Bedienteiladapter dieselbe Klemmenbelegung, Terminierung oder Modbus-Elektrik besitzt. Für einen Anschluss an die Anlage müssen die Klemmen des konkreten Adapters separat identifiziert werden.
+
+#### 1.2.1.5 Auswertung der Pichler-Parametrierungssoftware
+
+Die Parametrierungssoftware aus den Pichler-Handbuch-Screenshots war bisher bereits als Funktionskontext erfasst, aber noch nicht als eigener Reverse-Engineering-Baustein. Die neuen Unterlagen erlauben jetzt eine präzisere Einordnung.
+
+Die Software ist laut Anleitung eine PC-Konfigurations- und Diagnosesoftware für das Leistungsteil. Sie wird über einen separaten Schnittstellenadapter am Leistungsteil angeschlossen. In den Screenshots sind mindestens diese Bereiche erkennbar:
+
+- Hauptübersicht mit Gerätezustand, Betriebsart, Luftstufe und mehreren Temperaturwerten;
+- aktuelle Luftvolumenströme und Drehzahlen der beiden Ventilatoren;
+- Messwerte und Stellgrößen für Zuluft-/Abluftventilator, einschließlich Spannungen beziehungsweise Ausgangswerten;
+- zeitlicher Verlauf wichtiger Betriebswerte als Diagramm;
+- Status der Relais beziehungsweise externen Ausgänge;
+- Parameter für Luftvolumenströme, Temperaturregelung, Nachheizregister, Abluftbetrieb und optionale EWT-/Wärmepumpenfunktionen;
+- Service- und Testfunktionen für Relais, Lüfterstufen und Werkseinstellungen;
+- Datenaufzeichnung sowie eine Meldungs-/Ereignisliste.
+
+Die Softwaredarstellung passt fachlich sehr gut zu den inzwischen aus KNX und BACnet bestätigten Modbusdatenpunkten: Temperaturen, Luftvolumenströme, Betriebsstatus, Luftstufe, Bypass-/Heizungszustände und Sollwerte. Die Software ist daher eine starke Quelle für die Bedeutung der Werte und dafür, welche Parameter der Hersteller grundsätzlich vorgesehen hat.
+
+Sie liefert aus den Screenshots allein jedoch nicht:
+
+- die konkrete Modbus-Slave-Adresse, sofern diese nicht im Verbindungskonfigurationsdialog angezeigt wird;
+- den seriellen Modbus-Rahmen, Function Code, Byte-Reihenfolge und CRC;
+- die internen Hermes-Zweizeichenbefehle des Leistungsteils;
+- eine Zuordnung jedes sichtbaren Softwarefeldes zu einem bestimmten Hermes-Register;
+- den Nachweis, dass die Software über den aktuellen PC-RS232-Anschluss dieselbe Schnittstelle verwendet wie das `08KNXGAC`-Modbus-Gateway.
+
+Die Software ist deshalb für Reverse Engineering in drei Ebenen zu verwenden:
+
+1. **Semantik:** sichtbare Bezeichnungen und Einheiten gegen KNX-/BACnet-Datenpunkte und Hermes-Readbacks vergleichen.
+2. **Zugriffsrechte:** Felder in der Software als Anzeige-, Parameter- oder Testfunktion klassifizieren; ein sichtbares Eingabefeld ist noch kein Beweis für einen funktionierenden Hermes-Write.
+3. **Protokoll:** nur mit einem aufgezeichneten PC- oder Bus-Telegramm die tatsächliche Modbus-/Hermes-Übertragung ableiten.
+
+Besonders relevant für die bisherigen Schreibtests ist: Die Software kann Sollwerte und Parameter offenbar darstellen und ändern, während `L1`/`L2`/`L3` über Hermes zwar `ACK`, aber keinen dauerhaften Readback zeigen. Das spricht dafür, dass mindestens ein zusätzlicher Adapter-, Freigabe-, Speicher- oder Schnittstellenpfad beteiligt sein kann. Es beweist aber noch keine konkrete Save-Sequenz. Die KNX-/BACnet-Mappings machen jetzt einen passiven Vergleich möglich, ersetzen aber keinen Mitschnitt der Pichler-Softwarekommunikation.
 
 ### 1.2.2 Webserver-Beispiel aus der Hermes-Schnittstelle
 
@@ -204,11 +623,13 @@ Der erste Feldtest mit der neuen Konfiguration war erfolgreich:
 
 Ein zweiter Feldtest bestaetigte den Telegrammweg auch fuer einen hohen Wert: `L3=82` wurde mit `ACK` (`0x06`) bestaetigt. Weitere Tests mit `L3=80`, `L3=79`, `L3=92`, `L3=83`, `L3=76`, `L3=94` und `L3=88` erhielten ebenfalls `ACK`, aber der anschliessende Readback lieferte jeweils wieder `L3=68`. In einem erweiterten Test wurden auch `L2=44` und `L1=33` mit `ACK` bestaetigt; die Readbacks blieben bei `L2=33` beziehungsweise `L1=20`. Der Controller bestaetigt damit den Transport beziehungsweise die Telegrammgueltigkeit, uebernimmt die neuen Sollwerte in der aktuellen Betriebsart aber nicht dauerhaft. Die Number-Komponente liest deshalb nach `ACK` das Register erneut und veroeffentlicht nur den bestaetigten Readback-Wert.
 
-Ein anschliessender Schreibtest mit `Rd=23` wurde mit `NAK` abgelehnt. Das schliesst den Lesepfad nicht aus: `Rd` kann auf dieser Anlage gelesen werden, ist aber nicht als schreibbarer Befehl bestaetigt. Ein Readback von `154` wird im LG250-YAML vorlaeufig mit `0.1` multipliziert und als `15.4 degC` angezeigt, weil der Rohwert sonst als unmoegliche `154 degC` erscheinen wuerde. Diese Skalierung muss noch gegen den am Bedienteil angezeigten Sollwert verifiziert werden. `Rd` bleibt ein schreibgeschuetzter Sensor und wird nicht als Number angeboten. `L1`, `L2` und `L3` bleiben als durch `ACK` bestaetigte Schreibpfade aktiv.
+Ein anschliessender Schreibtest mit `Rd=23` wurde mit `NAK` abgelehnt. Das schliesst den Lesepfad nicht aus: `Rd` kann auf dieser Anlage gelesen werden, ist aber nicht als schreibbarer Befehl bestaetigt. Der BDE-Sollwert lag bei etwa `20.5 degC`, während parallel ein Rohwert wie `Rd=146` gelesen wurde. Die bisherige Multiplikation mit `0.1` war deshalb eine unbelegte und irreführende Interpretation und wurde entfernt. `Rd` wird in der LG250-YAML nur noch als unskalierter Diagnose-Rohwert angezeigt. Eine Zuordnung als Raum-Sollwert erfordert einen kontrollierten Vorher-/Nachher-Test am BDE.
 
-#### RL - vollstaendige offizielle Bitmaske
+#### Generische WR3223-Kommandotabelle und RL-Bitmaske
 
-Die Bitmaske fuer `RL` (Relais lesen) ist jetzt durch die PDF gesichert:
+Die neu bereitgestellte Hermes-Seite ist eine Primärquelle für die gezeigte WR3223-Protokollvariante. Sie ist nicht automatisch eine vollständige LG250-Firmwarebeschreibung. Die folgenden Bedeutungen gelten daher zunächst als generische WR3223-Semantik und müssen für die `40LG040100 V.4.0` durch Readbacks und Feldzustände bestätigt werden.
+
+Die Bitmaske fuer `RL` (Relais lesen) lautet in dieser generischen Tabelle:
 
 | Bitmask | Bedeutung |
 |---:|---|
@@ -219,13 +640,15 @@ Die Bitmaske fuer `RL` (Relais lesen) ist jetzt durch die PDF gesichert:
 | 16 | Vorheizregister |
 | 32 | Netzrelais Bypass |
 | 64 | Bedienteil aktiv |
-| 128 | Bedienung ueber RS Schnittstelle |
+| 128 | Bedienung ueber RS-Schnittstelle |
 | 256 | Luftstufe vorhanden |
 | 512 | WW_Nachheizregister |
 | 2048 | Magnetventil |
 | 4096 | Vorheizen aktiv |
 
-Die Bitmaske in `binary_sensor.py` stimmt vollstaendig mit der PDF ueberein; das Bitmuster springt absichtlich von 512 auf 2048 und laesst 1024 aus.
+Die Bitmaske in `binary_sensor.py` stimmt mit dieser generischen PDF-Tabelle ueberein; das Bitmuster springt absichtlich von 512 auf 2048 und laesst 1024 aus. Für die LG250 ist konkret beobachtet: `RL=6` entspricht Bits 2 und 4, also Zusatzheizung und Erdwaermetauscher; Bit 128 wurde auf dieser Anlage bisher nicht beobachtet. Die Tabelle beweist nicht, dass `RL` selbst schreibbar ist.
+
+Die Seite nennt außerdem `E1` bis `E8` als Kalibrierparameter der Temperaturfühler sowie `rT` als reine Relais-Testfunktion. Diese Befehle werden nicht in die produktive LG250-YAML aufgenommen: Für `E1-E8` fehlt ein LG250-Feldtest, und `rT` könnte direkt Relais beziehungsweise netzspannungsnahe Ausgänge schalten.
 
 #### ER - offizielle Fehlercodes
 
@@ -291,7 +714,9 @@ Die Screenshots zeigen ein BDE-Comfort-Bedienteil. Die Menues lassen sich fuer H
 
 ### A) Hauptanzeige
 
-Die Hauptanzeige zeigt:
+Die neu bereitgestellten Seiten dokumentieren für die konkrete Anlage das `BT-M1 DESIGN`. Die früher ausgewerteten Bedienbilder enthalten zusätzlich KOMFORT-Beispiele; die fachlichen Funktionen überschneiden sich, die Bedienoberfläche und Navigation sind aber nicht identisch.
+
+Die DESIGN-Hauptanzeige zeigt:
 
 - Uhrzeit und Datum
 - aktuelle Lueftungsstufe, zum Beispiel `Luftstufe 3`
@@ -299,7 +724,7 @@ Die Hauptanzeige zeigt:
 - Raumtemperatur
 - Betriebsart, zum Beispiel `Automatikbetrieb`
 
-Ziel in HA: eine kompakte Statusansicht aus `LS`, `ST`, `T4` beziehungsweise der passenden Raumtemperatur und den Ventilatordrehzahlen. `LS=1..3` steht fuer manuelle Stufen; `LS=4` wird auf dieser Anlage als Automatik-/Grundlueftungsmodus beobachtet.
+Ziel in HA: eine kompakte Statusansicht aus `LS`, `ST`, `T4` beziehungsweise der passenden Raumtemperatur und den Ventilatordrehzahlen. `LS=1..3` steht fuer manuelle Stufen; `LS=4` wird auf dieser Anlage als Automatik-/Grundlueftungsmodus beobachtet. Die DESIGN-Anzeige kann zusätzlich `Anlage Aus`, `Sommer/Winter`, Filterwartung und Störung direkt darstellen; diese Klartexte werden in HA aber nur aus bestätigten Registerwerten abgeleitet.
 
 ### B) Steuerung
 
@@ -332,12 +757,21 @@ Ziel in HA: Wochenplan oder mehrere Zeitplan-Automationen. Die Zeitplanwerte sin
 
 ### D) Filter und Wartung
 
+Das bereitgestellte Pichler-Merkblatt „Anleitung Filterwechsel LG 250“ ergänzt die praktische Geräte- und Wartungsdokumentation:
+
+- Außenluftfilter: Kassettenfilter Klasse `F7`; optional kann ein Pollenfilter der Klasse `F9` eingesetzt werden.
+- Abluftfilter: Kassettenfilter Klasse `G4`.
+- Die Filterkontrollmeldung erscheint laut Merkblatt alle vier Monate an der Bedieneinheit; die Filterverschmutzung soll zusätzlich regelmäßig kontrolliert werden.
+- Bei der Filterkontrollmeldung leuchtet die Leuchtdiode rechts unten gelb.
+- Vor dem Öffnen wird das Lüftungsgerät zunächst über die Bedieneinheit ausgeschaltet. Danach soll die Lüftungsstufe weiter abgesenkt werden, bis die Anlage die minimale Stufe erreicht und die Diode an der Bedieneinheit nicht mehr leuchtet. Erst dann wird die Anlage allpolig vom Netz getrennt.
+- Für Reinigungs- und Wartungsarbeiten ist die allpolige Netztrennung vorgeschrieben; das Merkblatt warnt ausdrücklich davor, sich nur auf das Ausschalten an der Bedieneinheit zu verlassen.
+
 Das Display zeigt:
 
 - Filter-Restlaufzeit, im Screenshot `2284 h`
 - Filter Reset
 
-Ziel in HA: Sensor fuer die Filterlaufzeit und ein Button fuer den Reset. Der angefragte Wert ist noch nicht sicher einem lesbaren Register zugeordnet; `FH` und `FR` waren auf dieser Firmware nicht gueltig. Ein Reset darf erst implementiert werden, wenn das Schreibregister und die erforderliche Sequenz bekannt sind.
+Ziel in HA: Sensor fuer die Filterlaufzeit und ein Button fuer den Reset. Das Merkblatt bestätigt die Wartungsanzeige und die sicheren Abschaltbedingungen, aber kein Hermes-Register. Der angefragte Wert ist weiterhin nicht sicher einem lesbaren Register zugeordnet; `FH` und `FR` waren auf dieser Firmware nicht gueltig. Ein Filter-Reset darf erst implementiert werden, wenn das Schreibregister und die erforderliche Sequenz bekannt sind. Die offizielle Modbusliste nennt separat eine Filter-Restzeit, aber diese Modbus-Adresse ist nicht automatisch ein Hermes-Befehl.
 
 ### E) Fehlerspeicher
 
@@ -574,13 +1008,13 @@ AE, AA, Az, Aa, AR, AZ, AP, AN, AV, T1, T2, T3, T4, T5, T6, T7, T8, LS, L1, L2, 
 
 ## 10) Display-/PC-Schnittstellen und Gesamtfahrplan
 
-Das BDE-Comfort-Display hängt an einer separaten RS485-Schnittstelle. Dieses Projekt verwendet ausschließlich die PC-Parametrierungsschnittstelle über RS232 mit dem Hermes-Zweizeichenprotokoll. Ein RS485-Sniffer ist daher nicht zwingend erforderlich: Displayänderungen können über die resultierenden RS232-Readbacks korreliert werden.
+Das BDE- beziehungsweise `BT-M1 DESIGN`-Display hängt an einer separaten RS485-Schnittstelle. In der konkreten Installation sitzt zwischen Display und RS485-Leitung zusätzlich ein Pichler-Display-Converter beziehungsweise Bedienteiladapter. Dieses Projekt verwendet ausschließlich die PC-Parametrierungsschnittstelle über RS232 mit dem Hermes-Zweizeichenprotokoll. Ein RS485-Sniffer ist daher nicht zwingend erforderlich: Displayänderungen können über die resultierenden RS232-Readbacks korreliert werden. Der Converter bleibt eine offene Architekturfrage, solange seine Ein-/Ausgänge und seine konkrete Protokollfunktion nicht vermessen oder aus einem Schaltplan belegt sind.
 
 ### 10.1 Bereits bestätigte Verhaltensdaten
 
 - `LS=4` wird als `Automatik - Grundlüftung` erkannt.
 - Eine Displayänderung kann `LS=4` auf `LS=2` ändern; die Statusanzeige meldet danach `Manuell - Stufe 2`.
-- `Rd` ist lesbar und liefert LG250-Rohwerte wie `134..156`; im LG250-YAML werden sie vorläufig mit `0.1` als `13.4..15.6 degC` dargestellt.
+- `Rd` ist lesbar und liefert LG250-Rohwerte wie `134..156`; im LG250-YAML wird der Wert derzeit unskaliert als Diagnose-Rohwert dargestellt, weil die Zuordnung zum DESIGN-Raum-Sollwert nicht bestaetigt ist.
 - `ER=0`, `ST=48`, `RL=6`, `NA/NZ`, `UA/UZ`, `F1/F2` und die Luftwegtemperaturen liefern verwertbare Readbacks.
 - `L1/L2/L3` erhalten bei Writes `ACK`, aber der anschließende Readback bleibt bei `20/33/68`. Diese Writes sind daher derzeit funktional nicht bestätigt.
 - Kontrollierter Display-angeschlossener Test am 14.08.2026: Bei `LS=2`, `ST=48`, `RL=6`, `UA=3.1 V`, `UZ=3.5 V` und `ER=0` wurde `L2=40` gesendet. Der Controller antwortete mit `ACK`, der unmittelbare Readback blieb jedoch `L2=33`. Damit ist der L2-Schreibframe formal korrekt quittiert, aber auch im aktiven manuellen Betrieb funktional unwirksam.
@@ -633,7 +1067,7 @@ Weitere herstellernahe beziehungsweise praxisbasierte WR3223-Dokumentationen lie
 - Die [Symcon-WR3223-Diskussion](https://community.symcon.de/t/abfragen-und-regeln-der-lueftungssteuerung-wr-3223-von-hermes-electronic/35008) bestätigt die gemeinsame Hermes-WR3223-Protokollfamilie, 9600 Baud, 7 Datenbits, gerade Parität und die ASCII-Steuerzeichenstruktur.
 - In der [Anlagenparameter-Dokumentation](https://hendrich.org/blogs/entscheidungshilfe-luftungsheizung/anlagenparameter/) wird beschrieben, dass vor der Parameteränderung `RESETCode=1` gesetzt werden muss. Die dort gezeigten Tabellen unterscheiden zwischen Messwerten und Parametern und enthalten auch `Luftstufe1`, `Luftstufe2` und `Luftstufe3` als Prozentwerte.
 
-Das passt als Hypothese zu `L2=40 -> ACK -> Readback L2=33`: Der Frame wird auf Transportebene akzeptiert, aber der Parameter wird ohne eine Freigabe-/Schreibschutzsequenz nicht dauerhaft übernommen. Es ist jedoch nicht bewiesen, dass `RESETCode` bei der Pichler-LG250 denselben Hermes-Befehl oder dieselbe Bedeutung hat. Der Name ist in der aktuell bekannten zweistelligen Registerliste dieses Projekts nicht enthalten.
+Das passt als Hypothese zu `L2=40 -> ACK -> Readback L2=33`: Der Frame wird auf Transportebene akzeptiert, aber der Parameter wird ohne eine Freigabe-/Schreibschutzsequenz nicht dauerhaft übernommen. Es ist jedoch nicht bewiesen, dass `RESETCode` bei der Pichler-LG250 denselben Hermes-Befehl oder dieselbe Bedeutung hat. Der Name ist in der aktuell bekannten zweistelligen Registerliste dieses Projekts nicht enthalten und darf deshalb nicht geraten oder blind geschrieben werden.
 
 Der Displaybefund schränkt die Übertragung zusätzlich ein: Bei der LG250 führte das Abziehen des BDE zu `LS=0`, `RL=0`, `ST=16` und abgeschalteten Ausgängen. Deshalb darf `X1` nicht erneut als normaler Schreibtest abgezogen werden, solange kein sicherer Wiederanlauf- und Rückfallplan besteht. Das kann eine Watchdog-/Freigabefunktion sein, ist durch die bisherigen Readbacks aber noch nicht als konkrete Firmwareimplementierung bewiesen.
 
@@ -645,3 +1079,38 @@ Der Displaybefund schränkt die Übertragung zusätzlich ein: Bei der LG250 füh
 4. Erfolg nur bei `ACK` plus passendem Readback und anschließend stabiler Wiederholungslesung annehmen.
 
 Bis dahin bleiben `L1`, `L2` und `L3` formal quittierte, aber funktional nicht bestätigte Writes. Die verwandten WR3223-Quellen enthalten außerdem Wärmepumpen-/Kältekreisparameter wie `VerdTemp` und `KondTEMP`; diese gelten nicht als Beleg dafür, dass die konkrete LG250-Anlage einen Verdampfer oder Kondensator besitzt.
+
+### 10.7 Prüfung der RESETCode-Frames aus verwandten WR3223-Unterlagen
+
+Die vorgeschlagene Sequenz `Re1 -> L240 -> Re0` ist für die LG250 derzeit nicht freigegeben. Die beiden genannten Aerex-PDFs waren erreichbar, konnten in der verfügbaren Umgebung aber nicht zuverlässig textuell extrahiert werden. Deshalb ist daraus noch kein verifizierter Register- oder Framebeleg für `RESETCode` entstanden.
+
+Gegen einen blinden Test sprechen außerdem die bereits belegten Bedeutungen im Hermes-Registerkatalog dieses Projekts:
+
+- `Re` ist als Zulufttemperatur-Sollwert dokumentiert und wird im generischen Number-Pfad als Register `Re` behandelt.
+- `Es` ist als Schaltpunkt Sommer-Stopp des Erdwaermetauschers dokumentiert.
+- `RC` ist in der bekannten zweistelligen Registerliste nicht enthalten.
+
+Damit sind `Re1` und `Es1` keine sicheren RESETCode-Frames, sondern könnten reale Anlagenparameter verändern. Die beispielhaften Frames haben zwar die richtige Struktur eines Hermes-Schreibtelegramms, aber die Struktur allein beweist weder den Registercode noch die Schreibberechtigung oder die EEPROM-Wirkung.
+
+Die Reset-/Speicherhypothese bleibt dennoch relevant: Die verwandten Quellen beschreiben eine Freigabe vor Parameteränderungen und erklären damit plausibel `ACK` ohne geänderten Readback. Der nächste sichere Schritt ist die genaue Zuordnung von `RESETCode` aus einer extrahierbaren Originaltabelle oder einem reproduzierbaren BDE-/Service-Frame. Bis dahin werden weder `Re1`, `Es1`, `Re0` noch `Es0` automatisch oder manuell als Testsequenz in die LG250-YAML eingebaut.
+
+### 10.8 Neue Primärquelle: Hermes-Schnittstellenprotokoll vom 20.08.2012
+
+Die neu bereitgestellten Originalseiten von Hermes Electronic sind deutlich belastbarer als die bisherigen Community-Zusammenfassungen. Sie bestätigen für die dokumentierte WR3223-Schnittstelle:
+
+- `9600 Baud`, `7 Bit + 1 Bit Parität`, gerade Parität und ein Stoppbit.
+- Leseanforderung: `EOT + Adresse + C1 + C2 + ENQ`.
+- Schreibtelegramm: `EOT + Adresse + STX + C1 + C2 + Daten + ETX + CKS`.
+- `CKS = C1 XOR C2 XOR Datenbytes XOR ETX`.
+- `ACK`: Der übertragene Wert ist laut Originaltext gültig und ausgeführt beziehungsweise abgespeichert.
+- `NAK`: Der übertragene Wert ist ungültig und nicht ausgeführt.
+
+Die Seite mit dem Schreibbeispiel `L1 60` bestätigt damit, dass unser `L2=40`-Telegramm strukturell dem offiziellen Hermes-Format entspricht. Unser beobachtetes Ergebnis `ACK` mit anschließendem Readback `L2=33` ist deshalb eine echte LG250-Abweichung vom dokumentierten Erfolgsversprechen oder ein Hinweis auf eine zusätzliche, variantenspezifische Betriebs-/Speicherbedingung. Der Readback bleibt für unsere Integration das maßgebliche Kriterium.
+
+Der abgebildete Kommandokatalog enthält `L1`, `L2`, `L3`, `LD`, `Ld`, `EC`, `Es`, `ES`, `EW`, `EE`, `EA`, `ER`, `RL`, `UZ`, `UA`, `NZ`, `NA`, `NM`, `Tf`, `Ta`, `MD`, `KM`, `ZH`, `WP`, `PA` und `II`, aber keinen Eintrag `RESETCode`, `RC`, `Re` oder `BDE 0/1`. `MD` ist dort als „Mode lesen“ aufgeführt, nicht als Schreibregister.
+
+Wichtig für die bisherige RESET-Hypothese: `Es` ist in dieser Primärquelle als **Sole-Stopp-Temperatur lesen/schreiben** beschrieben. Es ist damit kein belegter RESET-Code. Die Quelle liefert keinen sicheren RESET- oder BDE-Freigabeframe; solche Frames werden weiterhin nicht implementiert.
+
+Die RL-Tabelle bestätigt außerdem die Bitwerte `2=Zusatzheizung`, `4=Erdwärmetauscher`, `16=Vorheizregister`, `32=Netz Bypass`, `64=Bedienteil aktiv`, `128=Bedienung über RS-Schnittstelle`, `256=Luftstufe vorhanden`, `512=Warmwasser-Nachheizregister`, `2048=Magnetventil` und `4096=Vorheizen aktiv`. Unser `RL=6` passt damit zu Zusatzheizung plus EWT; die Bits 64 und 128 sind dabei nicht gesetzt. Die bisherige empirische Beobachtung `Bedienteil aktiv: 0` ist daher konsistent mit dem Originalkatalog.
+
+`RL` ist laut Primärquelle ein Leseregister („Relais lesen“). Das Bit `128` kann deshalb nicht durch einen `RL=128`-Write gesetzt werden. Der separate Kandidat für die RS-Bedienfreigabe ist `RS`; genau `RS=1` wurde auf dieser LG250 jedoch mit `NAK` beantwortet. Damit ist derzeit kein funktionierender Weg bekannt, das Bit `Bedienung über RS-Schnittstelle` vor einem Write zu setzen.

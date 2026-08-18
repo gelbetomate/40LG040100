@@ -3,7 +3,13 @@
 This repository provides ESPHome external components for Hermes 40LG040100 ventilation and heat-pump controllers.
 
 
-This is work in progress. Test changes carefully on real hardware.
+## LG250 Status: Read-Only Integration
+
+The tested Pichler LG250 is useful in Home Assistant as a read-only integration. This repository reliably reads selected temperatures, fan speeds, control voltages, ventilation-level setpoints, the current ventilation level, and diagnostic status/error values from the controller's native serial interface.
+
+The controller accepts some write frames with `ACK`, but the tested LG250 does not persist the requested value: immediate readback remains unchanged. Other control attempts, including the RS handshake and room-setpoint write, return `NAK`. No safe and reproducible control path has been identified, so the maintained LG250 configuration is intentionally read-only.
+
+Detailed field evidence, hardware context, protocol traces, Modbus/KNX/BACnet comparisons, and the unresolved write-path investigation are recorded in [code-status-lg250.md](code-status-lg250.md). Contributions are welcome, especially documented controller variants, raw captures from the panel or official PC software, wiring evidence, or a repeatable sequence that makes a write persist. Please do not submit guessed reset, save, watchdog, or relay commands as a control solution.
 
 The tested Pichler LG250 uses a native Hermes two-character command protocol over `9600 7E1` serial, not generic Modbus register addressing. The protocol framing uses ASCII command bytes, `EOT`/`STX`/`ETX` control characters, and an XOR checksum for writes. Register availability and write permissions are firmware- and model-dependent.
 
@@ -44,12 +50,11 @@ Many thanks to this cool work!
 
 ## Feature Summary
 
-- Read key temperatures and runtime values via serial protocol commands
-- Read and publish relay/status flags (compressor, bypass, panel lock, etc.)
-- Read the current ventilation level and operation mode
-- Write confirmed per-level airflow setpoints (`L1`, `L2`, `L3`)
-- Read and decode error/status messages
-- Persist and restore status/mode state via save/restore buttons
+- Read confirmed LG250 temperatures, fan RPMs, control voltages, heat-recovery value, and per-level setpoints
+- Read and publish the current ventilation level and raw diagnostic status/error values
+- Derive a Home Assistant status text from confirmed `LS` readback
+- Decode the confirmed error-register values into readable diagnostics
+- Keep all active LG250 controller communication passive: no level, mode, setpoint, reset, relay, or save writes
 
 ## Requirements
 
@@ -79,7 +84,7 @@ external_components:
     refresh: always
 ```
 
-## Minimal Recommended Configuration (40LG040100)
+## Minimal Recommended Configuration
 
 ```yaml
 external_components:
@@ -100,104 +105,49 @@ uart:
 
 40lg040100:
   uart_id: uart_bus
-  restore_attempts: 4
   enable_unsafe_writes: false
 
 sensor:
   - platform: 40lg040100
-
-binary_sensor:
-  - platform: 40lg040100
-
-select:
-  - platform: 40lg040100
-
-switch:
-  - platform: 40lg040100
-
-number:
-  - platform: 40lg040100
-
-button:
-  - platform: 40lg040100
 ```
 
-## Advanced Configuration Example
+## Confirmed LG250 Read-Only Example
 
 ```yaml
 40lg040100:
   uart_id: uart_bus
-  restore_attempts: 4
   enable_unsafe_writes: false
+  enable_rs_handshake: false
 
 sensor:
   - platform: 40lg040100
-    sensors:
-      T1:
-        name: "Evaporator Temperature"
-      T2:
-        deactivate: true
-      T3:
-        update_interval: 15s
     sensors_custom:
+      - command: "T1"
+        name: "LG250 Exhaust Air Temperature"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+      - command: "NA"
+        name: "LG250 Extract Fan Speed"
+        unit_of_measurement: "rpm"
+        state_class: measurement
+      - command: "NZ"
+        name: "LG250 Supply Fan Speed"
+        unit_of_measurement: "rpm"
+        state_class: measurement
+
+text_sensor:
+  - platform: 40lg040100
+    text_sensors_custom:
       - command: "LS"
-        name: "Current Ventilation Level"
-        unit_of_measurement: "level"
-
-binary_sensor:
-  - platform: 40lg040100
-    relais_sensors:
-      bedienteil_aktiv:
-        name: "Panel Active"
-      kompressor:
-        name: "Compressor"
-      zusatzheizung:
-        deactivate: true
-
-select:
-  - platform: 40lg040100
-    selects:
-      ventilation_level:
-        options: ["OFF", "Level 1", "Level 2", "Level 3"]
-      operation_mode:
-        name: "Operation Mode"
-
-switch:
-  - platform: 40lg040100
-    switches:
-      heat_pump:
-        name: "Heat Pump"
-      additional_heating:
-        name: "Additional Heating"
-      cooling:
-        name: "Cooling"
-
-number:
-  - platform: 40lg040100
-    numbers:
-      vent_level_1_speed:
-        name: "Vent Level 1 [%]"
-      vent_level_2_speed:
-        name: "Vent Level 2 [%]"
-      vent_level_3_speed:
-        name: "Vent Level 3 [%]"
-
-button:
-  - platform: 40lg040100
-    buttons:
-      save_state:
-        name: "Save Configuration"
-      restore_state:
-        name: "Restore Configuration"
+        name: "LG250 Current Ventilation Level"
+      - command: "ST"
+        name: "LG250 Raw Status Register"
 ```
 
-## Notes On Startup, Restore, And Write Access
+## Write Access On The Tested LG250
 
-- On boot, stored mode/status values are restored from NVS.
-- If the panel lock (`bedienteil_aktiv`) is active, write operations can be blocked.
-- Write operations are disabled by default. Set `enable_unsafe_writes: true` only after validating scaling and semantics on your hardware.
-- During startup, the component retries write initialization for a limited number of attempts (`restore_attempts`).
-- `save_state` and `restore_state` buttons are used to persist and recover mode/status configuration.
+Keep `enable_unsafe_writes: false` for the tested LG250. The maintained `lg250-esp.yaml` exposes no write-capable controller entity.
 
 For the tested Pichler LG250 interface, the following behavior is confirmed:
 
@@ -205,17 +155,17 @@ For the tested Pichler LG250 interface, the following behavior is confirmed:
 |---|---|---|
 | `LS` | Read | Current ventilation level; `4` represents base ventilation on the tested unit |
 | `MD` | Read | Operation mode readback is not available on the tested firmware |
-| `L1` | Read/Write | Write receives `ACK`, but current readback remains `20` after test write `33` |
-| `L2` | Read/Write | Write receives `ACK`, but current readback remains `33` after test write `44` |
-| `L3` | Read/Write | Write receives `ACK`, but current readback remains `68` after multiple test writes |
+| `L1` | Read | Controller accepts test writes with `ACK`, but readback remains `20`; no persistent write confirmed |
+| `L2` | Read | Controller accepts test writes with `ACK`, but readback remains `33`; no persistent write confirmed |
+| `L3` | Read | Controller accepts test writes with `ACK`, but readback remains `68`; no persistent write confirmed |
 | `Rd` | Read only | Room-temperature setpoint can be read, but `Rd` writes receive `NAK` |
 | `SW`, `RS` | Not confirmed for this interface | Writes receive `NAK`; do not enable the RS/PC-control handshake by default |
 
-`L1`/`L2`/`L3` are readable setpoint registers. On the tested LG250, write frames receive `ACK`, but test writes to all three registers are followed by the previous values on readback (`L1=20`, `L2=33`, `L3=68`). The component therefore treats the readback, not the `ACK` alone, as confirmation. The active level remains observable through `LS`. The Home Assistant displays for current level and operation mode are read-only on this tested interface.
+`L1`/`L2`/`L3` are readable setpoint registers. On the tested LG250, write frames receive `ACK`, but test writes to all three registers are followed by the previous values on readback (`L1=20`, `L2=33`, `L3=68`). The component treats readback, not `ACK` alone, as confirmation. The active level remains observable through `LS`; it is not controllable through this maintained LG250 profile.
 
 ## Validation Focus
 
-The practical priority is reliable operation of `40lg040100` end to end: stable reads, predictable writes, and reproducible startup behavior.
+The practical priority for the LG250 is reliable passive operation: stable reads, plausible units, correct air-path naming, and status derived only from confirmed readbacks.
 
 ## Register Coverage Strategy
 
@@ -298,18 +248,18 @@ The references repeatedly mention these control and telemetry capabilities:
 - This repository currently speaks the native 2-character controller command protocol (not generic Modbus register addressing).
 - The Modbus community mappings are still valuable as validation references for expected behavior and semantics.
 - The official Hermes interface references document command names and access rights, but they may describe a different controller variant. Treat them as protocol references and verify behavior on the target LG250 firmware.
-- Cross-model scaling and write permissions can differ. The tested LG250 accepts `L1`/`L2`/`L3` setpoint values in the observed `0..100%` range; verify every write on real hardware before enabling automations.
+- Cross-model scaling and write permissions can differ. The tested LG250 reads `L1`/`L2`/`L3` in the observed `0..100%` range, but does not persist tested writes; do not enable write automations from these values.
 - `Rd` is exposed as a read-only room-temperature setpoint on the tested LG250. It must not be configured as a writable Number unless a future firmware-specific test confirms that path.
 
 ### Suggested Safe Rollout
 
 - Start with read-only custom sensors/text sensors for candidate commands.
 - Validate ranges, units, and stability for several days.
-- Enable writes only for commands with confirmed semantics and scaling.
+- For the tested LG250, keep controller writes disabled unless a repeatable write/readback/persistence test proves the entire control path on your hardware.
 
-## UI Screenshots
+## Upstream UI Reference Screenshots
 
-Still smurgels pictures, need to update this with mine
+The following screenshots originate from the upstream WR3223-oriented component and are not evidence for the tested LG250 write path. They are kept only as a generic UI reference.
 
 ![Controls](images/wr3223_steuerelemente.png)
 ![Sensors](images/wr3223_sensoren.png)

@@ -1,6 +1,6 @@
-# Kompakte Nutzkonfiguration fuer LG250 auf Basis der Component-Profile
-# Diese Variante nutzt die in der Komponente hinterlegten lg250-Profile
-# fuer Sensoren, Textsensoren und Relais-Sensoren.
+# Compact LG250 configuration based on component profiles.
+# This variant uses the built-in lg250 profiles for sensors, text sensors,
+# and relay sensors.
 
 esphome:
   name: lg250-esp
@@ -70,13 +70,14 @@ binary_sensor:
   - platform: 40lg040100
     reference_profile: lg250
 
-# Optional: Schreibbare Lueftungsstufe als Select aktivieren.
-# Nur sinnvoll, wenn du bewusst Schreibzugriff testen willst.
-# Dann enable_unsafe_writes unter 40lg040100 auf true setzen.
+# Optional: enable a writable ventilation-level select.
+# Use only when deliberately testing write access on another controller variant.
+# Set enable_unsafe_writes to true under 40lg040100 only for that isolated test.
 # select:
 #   - platform: 40lg040100
 #     selects:
 #       ventilation_level:
+#         # English: Ventilation level.
 #         name: "LG250 Lueftungsstufe"
 #       operation_mode:
 #         deactivate: true

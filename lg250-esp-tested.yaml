@@ -4,9 +4,9 @@
 # using the WR3223-compatible command interface over UART.
 #
 # Purpose:
-# - Read confirmed LG250 operating values
-# - Expose passive entities to Home Assistant via the native ESPHome API
-# - Do not send control or configuration writes to the controller
+# - Read core operating values (temperatures, airflow, filter runtime, hours)
+# - Expose entities to Home Assistant via native ESPHome API
+# - Optionally write fan level commands when controller timing allows
 #
 # Wiring (ESP32 <-> LG40 board):
 # - GPIO17 (TX) -> RX on LG40 board
@@ -21,8 +21,8 @@
 #
 # Notes:
 # - Entity names are intentionally in German for Home Assistant usability.
-# - The tested LG250 accepts some write frames but does not persist the value.
-# - Investigation evidence and write-path limitations: code-status-lg250.md.
+# - Comments/documentation are in English for maintenance consistency.
+# - Some commands are marked as "(Test)" until verified on this specific unit.
 
 esphome:
   name: lg250-esp
@@ -55,6 +55,18 @@ web_server:
   port: 80
   version: 3
 
+# Persist operating hours in the ESP32 flash.
+globals:
+  - id: global_betriebsstunden
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+
+# Obtain the current time for correct time intervals.
+time:
+  - platform: sntp
+    id: sntp_time
+
 external_components:
   - source:
       type: git
@@ -75,7 +87,8 @@ uart:
 40lg040100:
   id: my_lg250_controller  # Set a unique controller ID here.
   uart_id: uart_bus
-  enable_unsafe_writes: false
+  restore_attempts: 5
+  enable_unsafe_writes: true
   enable_rs_handshake: false
 
 sensor:
@@ -169,21 +182,21 @@ sensor:
         update_interval: 60s
 
       - command: "L1"
-        # English: Ventilation level 1 setpoint (read-only on this profile).
+        # English: Ventilation level 1 setpoint.
         name: "LG250 L1-S1 Sollwert Lueftungsstufe 1"
         unit_of_measurement: "%"
         accuracy_decimals: 0
         update_interval: 2min
 
       - command: "L2"
-        # English: Ventilation level 2 setpoint (read-only on this profile).
+        # English: Ventilation level 2 setpoint.
         name: "LG250 L2-S2 Sollwert Lueftungsstufe 2"
         unit_of_measurement: "%"
         accuracy_decimals: 0
         update_interval: 2min
 
       - command: "L3"
-        # English: Ventilation level 3 setpoint (read-only on this profile).
+        # English: Ventilation level 3 setpoint.
         name: "LG250 L3-S3 Sollwert Lueftungsstufe 3"
         unit_of_measurement: "%"
         accuracy_decimals: 0
@@ -195,6 +208,40 @@ sensor:
         state_class: measurement
         accuracy_decimals: 0
         update_interval: 2min
+
+      - command: "F1"
+        # English: Supply-air airflow (test).
+        name: "LG250 F1 Volumenstrom Zuluft (Zuluft) (Test)"
+        unit_of_measurement: "m3/h"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 60s
+
+      - command: "F2"
+        # English: Extract-air airflow (test).
+        name: "LG250 F2 Volumenstrom Abluft (Fortluft) (Test)"
+        unit_of_measurement: "m3/h"
+        state_class: measurement
+        accuracy_decimals: 0
+        update_interval: 60s
+
+  # Calculate total operating hours from the writable global value.
+  - platform: template
+    # English: Total operating hours.
+    name: "LG250 Gesamtbetriebsstunden"
+    unit_of_measurement: "h"
+    icon: "mdi:counter"
+    state_class: total_increasing
+    accuracy_decimals: 1
+    update_interval: 60s
+    lambda: |-
+      // Safety check: increment only with a valid measurement value.
+      float ua = id(lg250_ua_volt).state;
+      if (ua > 0.1f && !std::isnan(ua) && !std::isinf(ua)) {
+        // 60 seconds / 3,600 seconds per hour.
+        id(global_betriebsstunden) += (60.0 / 3600.0);
+      }
+      return id(global_betriebsstunden);
 
 text_sensor:
   - platform: 40lg040100
@@ -212,8 +259,8 @@ text_sensor:
         update_interval: 60s
 
       - command: "ST"
-        # English: Raw status register.
-        name: "LG250 ST Status Register Roh"
+        # English: Raw status register (test).
+        name: "LG250 ST Status Register Roh (Test)"
         id: lg250_st_sensor
         update_interval: 60s
 
@@ -308,5 +355,107 @@ text_sensor:
 
       return {"Unbekannter Status"};
 
+binary_sensor:
+  - platform: 40lg040100
+    relais_sensors:
+      kompressor:
+        # English: Compressor.
+        name: "LG250 Kompressor"
+      zusatzheizung:
+        # English: Additional-heating relay.
+        name: "LG250 Zusatzheizung Relais"
+      erdwaermetauscher:
+        # English: Ground heat exchanger relay.
+        name: "LG250 Erdwaermetauscher Relais"
+      bypass:
+        # English: Bypass.
+        name: "LG250 Bypass"
+      vorheizregister:
+        # English: Preheater relay.
+        name: "LG250 Vorheizregister Relais"
+      netzrelais_bypass:
+        deactivate: true
+      bedienteil_aktiv:
+        # English: Control panel active.
+        name: "LG250 Bedienteil aktiv"
+      bedienung_via_rs:
+        # English: Control via RS interface.
+        name: "LG250 Bedienung via RS"
+      luftstufe_vorhanden:
+        deactivate: true
+      ww_nachheizregister:
+        # English: Domestic-hot-water reheater.
+        name: "LG250 Warmwasser Nachheizregister"
+      magnetventil:
+        # English: Solenoid valve.
+        name: "LG250 Magnetventil"
+      vorheizen_aktiv:
+        deactivate: true
+
+select:
+  - platform: 40lg040100
+    selects:
+      ventilation_level:
+        deactivate: true
+        # English options: Off, ventilation level 1, ventilation level 2,
+        # ventilation level 3, automatic.
+        options:
+          - "Aus"
+          - "Luftstufe 1"
+          - "Luftstufe 2"
+          - "Luftstufe 3"
+          - "Automatik"
+      operation_mode:
+        deactivate: true
+        # English options: Off, summer operation, summer extract operation,
+        # winter operation, manual winter operation.
+        options:
+          - "Aus"
+          - "Sommerbetrieb"
+          - "Sommerbetrieb Abluft"
+          - "Winterbetrieb"
+          - "Handbetrieb Winterbetrieb"
+
+number:
+  - platform: 40lg040100
+    numbers:
+      vent_level_1_speed:
+        # English: Ventilation level 1 setpoint.
+        name: "LG250 L1-S1 Sollwert Lueftungsstufe 1 (%)"
+        min_value: 0
+        max_value: 100
+        step: 1
+      vent_level_2_speed:
+        # English: Ventilation level 2 setpoint.
+        name: "LG250 L2-S2 Sollwert Lueftungsstufe 2 (%)"
+        min_value: 0
+        max_value: 100
+        step: 1
+      vent_level_3_speed:
+        # English: Ventilation level 3 setpoint.
+        name: "LG250 L3-S3 Sollwert Lueftungsstufe 3 (%)"
+        min_value: 0
+        max_value: 100
+        step: 1
+      supply_fan_trim:
+        # English: Supply-air correction (LD).
+        name: "LG250 Zuluft-Korrektur (LD)"
+        min_value: -40
+        max_value: 40
+        step: 1
+  - platform: template
+    # English: Enter operating hours shown on the display.
+    name: "LG250 Betriebsstunden vom Display eintragen"
+    icon: "mdi:counter"
+    min_value: 0
+    max_value: 999999
+    step: 1
+    mode: box
+    lambda: |-
+      return id(global_betriebsstunden);
+    set_action:
+      - lambda: |-
+          id(global_betriebsstunden) = x;
+          ESP_LOGI("main", "Operating hours synchronized manually from display.");
 
 

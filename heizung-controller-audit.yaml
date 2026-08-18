@@ -1,5 +1,5 @@
 # Pichler LG250 ESPHome Audit Configuration (max. read coverage)
-# Ziel: moeglichst viele lesbare Register in Home Assistant sichtbar machen
+# Goal: expose as many readable registers as possible in Home Assistant.
 
 esphome:
   name: lg250-esp
@@ -53,7 +53,7 @@ sensor:
   - platform: 40lg040100
     reference_profile: lg250
 
-    # Standardwerte koennen hier bei Bedarf umbenannt/deaktiviert werden.
+    # Default values can be renamed or disabled here if needed.
     sensors:
       T1:
         deactivate: true
@@ -63,8 +63,9 @@ sensor:
         deactivate: true
 
     sensors_custom:
-      # Plausibilitaet: explizite Temperaturnamen passend zur Registerdefinition
+      # Plausibility: explicit temperature labels aligned with register definitions.
       - command: "T1"
+        # English: Exhaust air temperature (exhaust air path FO).
         name: "LG250 T1 Fortlufttemperatur (Fortluft FO)"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -72,6 +73,7 @@ sensor:
         update_interval: 30s
 
       - command: "T2"
+        # English: Supply air temperature (supply air path ZU).
         name: "LG250 T2 Zulufttemperatur (Zuluft ZU)"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -79,6 +81,7 @@ sensor:
         update_interval: 30s
 
       - command: "T3"
+        # English: Outside air temperature.
         name: "LG250 T3 Aussentemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -86,6 +89,7 @@ sensor:
         update_interval: 30s
 
       - command: "T4"
+        # English: Extract air / room exhaust temperature.
         name: "LG250 T4 Ablufttemperatur Raum"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -93,6 +97,7 @@ sensor:
         update_interval: 30s
 
       - command: "T5"
+        # English: Exhaust air temperature after the heat exchanger.
         name: "LG250 T5 Nach Waermetauscher Fortluft"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -100,6 +105,7 @@ sensor:
         update_interval: 30s
 
       - command: "T6"
+        # English: Supply air temperature.
         name: "LG250 T6 Zulufttemperatur"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -107,6 +113,7 @@ sensor:
         update_interval: 30s
 
       - command: "T7"
+        # English: Temperature after ground-loop preheating.
         name: "LG250 T7 Nach Solevorerwaermung"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -114,14 +121,16 @@ sensor:
         update_interval: 30s
 
       - command: "T8"
+        # English: Temperature after the preheater.
         name: "LG250 T8 Nach Vorheizregister"
         unit_of_measurement: "°C"
         device_class: temperature
         state_class: measurement
         update_interval: 30s
 
-      # Sollwerte skaliert + Rohwerte fuer Plausibilitaetsvergleich
+      # Scaled setpoints and raw values for plausibility comparison.
       - command: "Rd"
+        # English: Scaled room-temperature setpoint.
         name: "LG250 Rd Raumsollwert skaliert"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -130,10 +139,12 @@ sensor:
           - multiply: 0.1
 
       - command: "Rd"
+        # English: Raw room-temperature setpoint.
         name: "LG250 Rd Raumsollwert roh"
         update_interval: 60s
 
       - command: "Re"
+        # English: Scaled supply-air setpoint.
         name: "LG250 Re Zuluft Sollwert skaliert"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -142,10 +153,12 @@ sensor:
           - multiply: 0.1
 
       - command: "Re"
+        # English: Raw supply-air setpoint.
         name: "LG250 Re Zuluft Sollwert roh"
         update_interval: 60s
 
       - command: "SP"
+        # English: Scaled supply-air temperature setpoint.
         name: "LG250 SP Zuluftsolltemperatur skaliert"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -154,88 +167,105 @@ sensor:
           - multiply: 0.1
 
       - command: "SP"
+        # English: Raw supply-air temperature setpoint.
         name: "LG250 SP Zuluftsolltemperatur roh"
         update_interval: 60s
 
-      # Betriebs-/Laufzeitwerte
+      # Operating/runtime values.
       - command: "FI"
+        # English: Remaining filter runtime.
         name: "LG250 Filter Restlaufzeit"
         unit_of_measurement: "h"
         state_class: measurement
         update_interval: 2min
 
       - command: "H1"
+        # English: Operating hours, level 1.
         name: "LG250 Betriebsstunden Stufe 1"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: 5min
 
       - command: "H2"
+        # English: Operating hours, level 2.
         name: "LG250 Betriebsstunden Stufe 2"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: 5min
 
       - command: "H3"
+        # English: Operating hours, level 3.
         name: "LG250 Betriebsstunden Stufe 3"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: 5min
 
       - command: "H4"
+        # English: Operating hours, level 4.
         name: "LG250 Betriebsstunden Stufe 4"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: 5min
 
       - command: "HL"
+        # English: Total fan operating hours.
         name: "LG250 Betriebsstunden Luefter gesamt"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: 5min
 
-      # Volumenstroeme
+      # Airflow values.
       - command: "V1"
+        # English: Airflow at ventilation level 1.
         name: "LG250 Volumenstrom Stufe 1"
         unit_of_measurement: "m3/h"
         update_interval: 2min
 
       - command: "V2"
+        # English: Airflow at ventilation level 2.
         name: "LG250 Volumenstrom Stufe 2"
         unit_of_measurement: "m3/h"
         update_interval: 2min
 
       - command: "V3"
+        # English: Airflow at ventilation level 3.
         name: "LG250 Volumenstrom Stufe 3"
         unit_of_measurement: "m3/h"
         update_interval: 2min
 
-      # Zusatzauslese fuer selten genutzte Register
+      # Additional reads for infrequently used registers.
       - command: "S1"
+        # English: Ground heat exchanger boost share, level 1.
         name: "LG250 S1 EWT Boost Anteil Stufe 1"
         update_interval: 10min
 
       - command: "S2"
+        # English: Ground heat exchanger boost share, level 2.
         name: "LG250 S2 EWT Boost Anteil Stufe 2"
         update_interval: 10min
 
       - command: "S3"
+        # English: Ground heat exchanger boost share, level 3.
         name: "LG250 S3 EWT Boost Anteil Stufe 3"
         update_interval: 10min
 
       - command: "SM"
+        # English: Solar maximum.
         name: "LG250 SM Solar max"
         update_interval: 10min
 
       - command: "DA"
+        # English: Delta-T switch-off threshold.
         name: "LG250 DA Delta T Aus"
         update_interval: 10min
 
       - command: "DE"
+        # English: Delta-T switch-on threshold.
         name: "LG250 DE Delta T Ein"
         update_interval: 10min
 
       - command: "Tf"
+        # English: Utility-company lockout.
         name: "LG250 Tf EVU Sperre"
         update_interval: 10min
 
@@ -247,26 +277,38 @@ binary_sensor:
   - platform: 40lg040100
     relais_sensors:
       kompressor:
+        # English: Compressor.
         name: "LG250 Kompressor"
       zusatzheizung:
+        # English: Additional heating.
         name: "LG250 Zusatzheizung"
       erdwaermetauscher:
+        # English: Ground heat exchanger.
         name: "LG250 Erdwaermetauscher"
       bypass:
+        # English: Bypass.
         name: "LG250 Bypass"
       vorheizregister:
+        # English: Preheater.
         name: "LG250 Vorheizregister"
       netzrelais_bypass:
+        # English: Bypass mains relay.
         name: "LG250 Netzrelais Bypass"
       bedienteil_aktiv:
+        # English: Control panel active.
         name: "LG250 Bedienteil aktiv"
       bedienung_via_rs:
+        # English: Control via RS interface.
         name: "LG250 Bedienung via RS"
       luftstufe_vorhanden:
+        # English: Ventilation level available.
         name: "LG250 Luftstufe vorhanden"
       ww_nachheizregister:
+        # English: Domestic-hot-water reheater.
         name: "LG250 Warmwasser Nachheizregister"
       magnetventil:
+        # English: Solenoid valve.
         name: "LG250 Magnetventil"
       vorheizen_aktiv:
+        # English: Preheating active.
         name: "LG250 Vorheizen aktiv"

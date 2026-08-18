@@ -50,14 +50,14 @@ wifi:
 
 captive_portal:
 
-  # 1. Deine kopierte und angepasste GitHub-Komponente einbinden
+# 1. Load the copied and adapted GitHub component.
 external_components:
   - source:
       type: git
       url: https://github.com/gelbetomate/40LG040100
-      ref: main  # Lädt direkt von deinem Haupt-Branch
+      ref: main  # Load directly from the main branch.
     components: [40lg040100]
-    refresh: always # Erzwingt bei jedem Update das Herunterladen deiner Änderungen
+    refresh: always # Download component changes on every update.
 
 # 2. Configure serial connection on GPIO16/GPIO17
 uart:
@@ -69,35 +69,38 @@ uart:
     parity: EVEN
     stop_bits: 1
 
-# 3. Deine neue 40lg040100 Controller-Integration aktivieren
+# 3. Enable the 40lg040100 controller integration.
 40lg040100:
   uart_id: uart_bus
-  reference_profile: lg250      # Nutzt das in deinem Repository angelegte LG250-Profil
-  restore_attempts: 5           # Versuche für Schreibvorgänge
-  enable_unsafe_writes: false   # Zu deiner Sicherheit beim ersten Testen auf "false" lassen
+  reference_profile: lg250      # Use the LG250 profile defined in this repository.
+  restore_attempts: 5           # Retry count for write operations.
+  enable_unsafe_writes: false   # Keep false for safe initial testing.
 
 sensor:
   - platform: 40lg040100
-    # Die Standard-Sensoren aus dem Profil werden automatisch generiert.
-    # Hier kannst du das Standardverhalten deiner Basis-Sensoren anpassen:
+    # Default profile sensors are created automatically.
+    # Adjust the base-sensor behavior here if needed.
     sensors:
       T1:
-        deactivate: true # Deaktiviert, da unten als Custom-Sensor mit deutschem Namen definiert
+        deactivate: true # Disabled because a custom sensor with a German label is defined below.
       T2:
         deactivate: true
       T3:
         deactivate: true
       NA:
+        # English: Extract fan speed.
         name: "Pichler LG250 Drehzahl Abluft"
         deactivate: false
       NZ:
+        # English: Supply fan speed.
         name: "Pichler LG250 Drehzahl Zuluft"
         deactivate: false
 
-    # Deine bestehenden Custom-Befehle bleiben voll kompatibel:
+    # Existing custom commands remain fully compatible.
     sensors_custom:
       # --- 1. RAW TEMPERATURE VALUES ---
       - command: "T1"
+        # English: Outside air temperature before the heat exchanger.
         name: "Pichler LG250 Außenlufttemperatur vor Wärmetauscher"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -105,6 +108,7 @@ sensor:
         update_interval: "30s"
 
       - command: "T2"
+        # English: Supply air temperature after the heat exchanger.
         name: "Pichler LG250 Zulufttemperatur nach Wärmetauscher"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -112,6 +116,7 @@ sensor:
         update_interval: "30s"
 
       - command: "T3"
+        # English: Extract air temperature before the heat exchanger.
         name: "Pichler LG250 Ablufttemperatur vor Wärmetauscher"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -119,6 +124,7 @@ sensor:
         update_interval: "30s"
 
       - command: "T4"
+        # English: Exhaust air temperature after the heat exchanger.
         name: "Pichler LG250 Fortlufttemperatur nach Wärmetauscher"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -127,6 +133,7 @@ sensor:
 
       # --- 2. SETPOINT TEMPERATURE ---
       - command: "Rd"
+        # English: Room temperature setpoint.
         name: "Pichler LG250 Soll-Temperatur Raum"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -135,6 +142,7 @@ sensor:
           - multiply: 0.1
 
       - command: "Re"
+        # English: Re temperature setpoint (test).
         name: "Pichler LG250 Soll-Temperatur Re (Test)"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -143,6 +151,7 @@ sensor:
           - multiply: 0.1
 
       - command: "SP"
+        # English: SP temperature setpoint (test).
         name: "Pichler LG250 Soll-Temperatur SP (Test)"
         unit_of_measurement: "°C"
         device_class: temperature
@@ -151,11 +160,13 @@ sensor:
           - multiply: 0.1
 
       - command: "Rd"
+        # English: Raw Rd temperature setpoint value (test).
         name: "Pichler LG250 Soll-Temperatur Rd Rohwert (Test)"
         update_interval: "60s"
 
       # --- 3. FILTER REMAINING RUNTIME ---
       - command: "FI"
+        # English: Remaining filter runtime.
         name: "Pichler LG250 Filter Restlaufzeit"
         unit_of_measurement: "h"
         state_class: measurement
@@ -163,74 +174,88 @@ sensor:
 
       # --- 4. AIRFLOW RATES ---
       - command: "V1"
+        # English: Airflow at ventilation level 1.
         name: "Pichler LG250 Volumenstrom Stufe 1"
         unit_of_measurement: "m³/h"
         update_interval: "2min"
 
       - command: "V2"
+        # English: Airflow at ventilation level 2.
         name: "Pichler LG250 Volumenstrom Stufe 2"
         unit_of_measurement: "m³/h"
         update_interval: "2min"
 
       - command: "V3"
+        # English: Airflow at ventilation level 3 (test).
         name: "Pichler LG250 Volumenstrom Stufe 3 (Test)"
         unit_of_measurement: "m³/h"
         update_interval: "2min"
 
       # --- 4b. AIRFLOW A/B TESTS ---
       - command: "L1"
+        # English: Ventilation level 1 setpoint (test).
         name: "Pichler LG250 Luftstufe 1 Sollwert (Test)"
         unit_of_measurement: "%"
         update_interval: "2min"
 
       - command: "L2"
+        # English: Ventilation level 2 setpoint (test).
         name: "Pichler LG250 Luftstufe 2 Sollwert (Test)"
         unit_of_measurement: "%"
         update_interval: "2min"
 
       - command: "L3"
+        # English: Ventilation level 3 setpoint (test).
         name: "Pichler LG250 Luftstufe 3 Sollwert (Test)"
         unit_of_measurement: "%"
         update_interval: "2min"
 
       - command: "LS"
+        # English: Current ventilation level (test).
         name: "Pichler LG250 Aktuelle Luftstufe (Test)"
         update_interval: "30s"
 
       - command: "MD"
+        # English: Raw operating mode value (test).
         name: "Pichler LG250 Betriebsart Rohwert (Test)"
         update_interval: "30s"
 
       - command: "ER"
+        # English: Controller error code (test).
         name: "Pichler LG250 Fehlercode Leistungsteil (Test)"
         update_interval: "60s"
 
       # --- 5. ALL OPERATING HOURS ---
       - command: "H1"
+        # English: Operating hours, level 1.
         name: "Pichler LG250 Betriebsstunden Stufe 1"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: "5min"
 
       - command: "H2"
+        # English: Operating hours, level 2.
         name: "Pichler LG250 Betriebsstunden Stufe 2"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: "5min"
 
       - command: "H3"
+        # English: Operating hours, level 3.
         name: "Pichler LG250 Betriebsstunden Stufe 3"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: "5min"
 
       - command: "H4"
+        # English: Operating hours, level 4.
         name: "Pichler LG250 Betriebsstunden Stufe 4"
         unit_of_measurement: "h"
         state_class: total_increasing
         update_interval: "5min"
 
       - command: "HL"
+        # English: Total fan operating hours.
         name: "Pichler LG250 Betriebsstunden Lüfter Gesamt"
         unit_of_measurement: "h"
         state_class: total_increasing
@@ -241,8 +266,10 @@ binary_sensor:
   - platform: 40lg040100
     relais_sensors:
       bedienteil_aktiv:
+        # English: Control panel active.
         name: "Pichler LG250 Bedienteil aktiv"
       bedienung_via_rs:
+        # English: Control via RS interface.
         name: "Pichler LG250 Bedienung via RS-Schnittstelle"
       luftstufe_vorhanden:
         deactivate: true
